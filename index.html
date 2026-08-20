@@ -153,6 +153,22 @@
                    background:var(--flaeche);color:var(--warte);border-radius:99px;
                    padding:6px 11px;font:600 12.5px var(--b);cursor:pointer}
   .zeitwahl button.an{background:var(--warte);color:#fff}
+  .zeitwahl button.belegt{border-color:color-mix(in srgb,var(--nein) 40%,transparent);
+                          color:var(--nein);opacity:.55;text-decoration:line-through}
+
+  .konflikt{margin-top:10px;padding:12px;border-radius:11px;
+            background:color-mix(in srgb,var(--nein) 12%,var(--flaeche));
+            border:1.5px solid var(--nein);animation:pochen 1.1s ease-in-out 2}
+  .konflikt p{margin:0 0 4px;font:700 13.5px var(--b);color:var(--nein)}
+  .konflikt span{display:block;font-size:12.5px;color:var(--tinte);line-height:1.4}
+  .konflikt button{margin-top:9px;width:100%;border:0;background:var(--nein);color:#fff;
+                   border-radius:10px;padding:11px;font:700 14px var(--b);cursor:pointer}
+  @keyframes pochen{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--nein) 40%,transparent)}
+                    50%{box-shadow:0 0 0 7px color-mix(in srgb,var(--nein) 0%,transparent)}}
+  .jetzt.stoerung{border-left-color:var(--nein)}
+  .marke.stoerung{background:var(--nein);color:#fff;border-color:var(--nein)}
+  .reihe.stoerung{border-left-color:var(--nein)}
+  .wv.stoerung{background:var(--nein);color:#fff}
   .wannreihe input{display:none}
 
   .notiz{width:100%;margin-top:9px;background:var(--flaeche2);border:1px solid var(--linie);
@@ -322,14 +338,77 @@ const ELBE=[[50.9631,13.91667],[50.96118,13.90957],[50.96188,13.8978],[50.96515,
   }
   function wvSetzen(id, datum){
     if(!stand[id]) stand[id] = {};
+    var zeit = stand[id].wz || "";
+    if (zeit){
+      var k = stoerung(id, datum, zeit);
+      if (k){
+        letzteStoerung = {id: id, zeit: zeit, datum: datum, mit: k,
+                          frei: naechsterFrei(id, datum, zeit)};
+        return false;
+      }
+    }
+    letzteStoerung = null;
     stand[id].wv = datum; stand[id].s = "warten"; stand[id].w = ich; sichern();
+    return true;
   }
+  var letzteStoerung = null;   // fuer die Anzeige im Block
   function wzSetzen(id, zeit){
     if(!stand[id]) stand[id] = {};
-    if (zeit) stand[id].wz = zeit; else delete stand[id].wz;
-    if (!stand[id].wv) { stand[id].wv = inTagen(1); stand[id].s = "warten"; stand[id].w = ich; }
+    var datum = stand[id].wv || inTagen(1);
+    if (zeit){
+      var k = stoerung(id, datum, zeit);
+      if (k){
+        // Termin wird nicht gesetzt. Stattdessen roter Hinweis mit Vorschlag.
+        letzteStoerung = {id: id, zeit: zeit, mit: k, frei: naechsterFrei(id, datum, zeit)};
+        return false;
+      }
+      stand[id].wz = zeit;
+    } else delete stand[id].wz;
+    letzteStoerung = null;
+    if (!stand[id].wv) { stand[id].wv = datum; stand[id].s = "warten"; stand[id].w = ich; }
     sichern();
+    return true;
   }
+  var ABSTAND = 30;   // Minuten, die zwischen zwei Terminen liegen muessen
+
+  function inMinuten(hhmm){
+    var p = (hhmm || "").split(":");
+    return p.length === 2 ? parseInt(p[0],10)*60 + parseInt(p[1],10) : null;
+  }
+  function alsUhrzeit(min){
+    min = ((min % 1440) + 1440) % 1440;
+    return String(Math.floor(min/60)).padStart(2,"0") + ":" + String(min%60).padStart(2,"0");
+  }
+  // Kollidiert ein Termin mit einem anderen? Nur wenn beide eine Uhrzeit haben.
+  function stoerung(id, datum, zeit){
+    var m = inMinuten(zeit);
+    if (!datum || m === null) return null;
+    for (var i=0;i<HOTELS.length;i++){
+      var o = HOTELS[i];
+      if (o.id === id) continue;
+      if (wvVon(o.id) !== datum) continue;
+      var m2 = inMinuten(wzVon(o.id));
+      if (m2 === null) continue;
+      if (Math.abs(m2 - m) < ABSTAND) return {haus: o, zeit: wzVon(o.id), abstand: Math.abs(m2-m)};
+    }
+    return null;
+  }
+  // Naechster freier Platz ab der gewuenschten Zeit, in Viertelstunden
+  function naechsterFrei(id, datum, zeit){
+    var start = inMinuten(zeit);
+    if (start === null) return null;
+    for (var schritt=1; schritt<=48; schritt++){
+      var kandidat = start + schritt*15;
+      if (kandidat > 21*60) break;
+      if (!stoerung(id, datum, alsUhrzeit(kandidat))) return alsUhrzeit(kandidat);
+    }
+    return null;
+  }
+  // Steht dieses Haus gerade in einem Konflikt?
+  function hatStoerung(id){
+    return !!stoerung(id, wvVon(id), wzVon(id));
+  }
+
   // Tag und Uhrzeit zusammen, so wie man es sagen wuerde
   function wannText(id){
     var d = datumText(wvVon(id)), z = wzVon(id);
@@ -481,8 +560,13 @@ const ELBE=[[50.9631,13.91667],[50.96118,13.90957],[50.96188,13.8978],[50.96515,
     document.getElementById("z3").textContent = c.warten;
     document.getElementById("z4").textContent = c.zugesagt;
     document.getElementById("z5").textContent = c.abgelehnt;
-    document.getElementById("fortschritt").textContent =
-      (c.zugesagt + c.abgelehnt) + " von " + HOTELS.length + " durch";
+    var kollisionen = HOTELS.filter(function(h){ return hatStoerung(h.id); }).length;
+    var f = document.getElementById("fortschritt");
+    f.textContent = kollisionen
+      ? kollisionen + " Termin" + (kollisionen>1?"e":"") + " doppelt belegt"
+      : (c.zugesagt + c.abgelehnt) + " von " + HOTELS.length + " durch";
+    f.style.color = kollisionen ? "var(--nein)" : "";
+    f.style.fontWeight = kollisionen ? "700" : "";
     var nf = HOTELS.filter(function(h){ return faellig(h.id); }).length;
     var ng = HOTELS.filter(function(h){ return gemerkt(h.id); }).length;
     document.getElementById("nFaellig").textContent = nf ? nf : "";
@@ -511,12 +595,13 @@ const ELBE=[[50.9631,13.91667],[50.96118,13.90957],[50.96188,13.8978],[50.96515,
       var h = nachId(aktuell), idx = offen.indexOf(h), z = zustand(h.id);
 
       var k = document.createElement("section");
-      k.className = "jetzt" + (z !== "offen" ? " " + z : "");
+      k.className = "jetzt" + (z !== "offen" ? " " + z : "") + (hatStoerung(h.id) ? " stoerung" : "");
       var marken = '<span class="marke">Nr. ' + (idx+1) + " von " + offen.length + "</span>";
       var dvor = strecken[h.id];
       if (dvor !== undefined && dvor < 1) marken += '<span class="marke">Startpunkt</span>';
       else if (dvor !== undefined) marken += '<span class="marke">' + weg(dvor) + "</span>";
       else if (idx > 0) marken += '<span class="marke">' + weg(meter(offen[idx-1], h)) + " vom vorigen</span>";
+      if (hatStoerung(h.id)) marken += '<span class="marke stoerung">Termin doppelt belegt</span>';
       if (wvVon(h.id)) marken += '<span class="marke w' + (faellig(h.id) ? " faellig" : "") + '">' +
         (faellig(h.id) ? "Heute dran" + (wzVon(h.id) ? " um " + wzVon(h.id) : "")
                        : "Wieder " + wannText(h.id)) + "</span>";
@@ -616,7 +701,9 @@ const ELBE=[[50.9631,13.91667],[50.96118,13.90957],[50.96188,13.8978],[50.96515,
     // Zehn bis zwölf ist das beste Fenster: Abreise durch, Anreise noch nicht da.
     var zeiten = ["10:00","11:00","14:00","16:00"];
     var zk = zeiten.map(function(x){
-      return '<button type="button" data-z="' + x + '"' + (z === x ? ' class="an"' : "") + ">" + x + "</button>";
+      var klasse = z === x ? "an" : (stoerung(h.id, w || inTagen(1), x) ? "belegt" : "");
+      return '<button type="button" data-z="' + x + '"' + (klasse ? ' class="' + klasse + '"' : "") +
+             ">" + x + "</button>";
     }).join("");
     return '<div class="wann">' +
       "<p>Wann gehst du wieder hin?</p>" +
@@ -627,35 +714,64 @@ const ELBE=[[50.9631,13.91667],[50.96118,13.90957],[50.96188,13.8978],[50.96515,
       "</div>" +
       '<div class="zeitwahl">' + zk +
         (z ? '<button type="button" data-z="">Zeit löschen</button>' : "") +
-      "</div></div>";
+      "</div>" + warnkasten(h) + "</div>";
   }
+  function warnkasten(h){
+    var k = letzteStoerung;
+    // Entweder ein gerade abgelehnter Versuch, oder ein bereits bestehender Konflikt
+    if (!k || k.id !== h.id){
+      var b = stoerung(h.id, wvVon(h.id), wzVon(h.id));
+      if (!b) return "";
+      return '<div class="konflikt"><p>Termin überschneidet sich</p><span>' +
+        "Zur selben Zeit steht <strong>" + b.haus.n + "</strong> um " + b.zeit +
+        " Uhr. Zwischen zwei Terminen sollten mindestens " + ABSTAND + " Minuten liegen.</span>" +
+        (naechsterFrei(h.id, wvVon(h.id), wzVon(h.id))
+          ? '<button type="button" data-frei="' + naechsterFrei(h.id, wvVon(h.id), wzVon(h.id)) +
+            '">Stattdessen ' + naechsterFrei(h.id, wvVon(h.id), wzVon(h.id)) + " Uhr</button>"
+          : "") + "</div>";
+    }
+    return '<div class="konflikt"><p>' + k.zeit + " Uhr geht nicht</p><span>" +
+      "<strong>" + k.mit.haus.n + "</strong> steht schon um " + k.mit.zeit +
+      " Uhr — das sind nur " + k.mit.abstand + " Minuten dazwischen. Der Termin wurde nicht gesetzt.</span>" +
+      (k.frei ? '<button type="button" data-frei="' + k.frei + '">Stattdessen ' + k.frei + " Uhr</button>" : "") +
+      "</div>";
+  }
+
   function wannVerdrahten(k, h){
     k.querySelectorAll(".wannreihe button").forEach(function(btn){
       btn.addEventListener("click", function(){
-        wvSetzen(h.id, inTagen(parseInt(this.dataset.t, 10)));
-        sagen("Wieder dran " + wannText(h.id));
+        var ok = wvSetzen(h.id, inTagen(parseInt(this.dataset.t, 10)));
+        sagen(ok ? "Wieder dran " + wannText(h.id) : "An dem Tag ist die Uhrzeit schon belegt");
         bauen();
       });
     });
     var dat = k.querySelector("#wvDatum");
     if (dat) dat.addEventListener("change", function(){
       if (!this.value) return;
-      wvSetzen(h.id, this.value);
-      sagen("Wieder dran " + wannText(h.id));
+      var ok = wvSetzen(h.id, this.value);
+      sagen(ok ? "Wieder dran " + wannText(h.id) : "An dem Tag ist die Uhrzeit schon belegt");
       bauen();
     });
     var zeit = k.querySelector("#wvZeit");
     if (zeit) zeit.addEventListener("change", function(){
-      wzSetzen(h.id, this.value);
-      sagen(this.value ? "Wieder dran " + wannText(h.id) : "Uhrzeit entfernt");
+      var ok = wzSetzen(h.id, this.value);
+      sagen(!ok ? "Termin überschneidet sich — nicht gesetzt"
+                : (this.value ? "Wieder dran " + wannText(h.id) : "Uhrzeit entfernt"));
       bauen();
     });
     k.querySelectorAll(".zeitwahl button").forEach(function(btn){
       btn.addEventListener("click", function(){
-        wzSetzen(h.id, this.dataset.z);
-        sagen(this.dataset.z ? "Wieder dran " + wannText(h.id) : "Uhrzeit entfernt");
+        var ok = wzSetzen(h.id, this.dataset.z);
+        sagen(!ok ? "Termin überschneidet sich — nicht gesetzt"
+                  : (this.dataset.z ? "Wieder dran " + wannText(h.id) : "Uhrzeit entfernt"));
         bauen();
       });
+    });
+    var frei = k.querySelector(".konflikt button[data-frei]");
+    if (frei) frei.addEventListener("click", function(){
+      wzSetzen(h.id, this.dataset.frei);
+      sagen("Wieder dran " + wannText(h.id));
+      bauen();
     });
   }
 
@@ -668,10 +784,10 @@ const ELBE=[[50.9631,13.91667],[50.96118,13.90957],[50.96188,13.8978],[50.96515,
       var z = zustand(h.id);
       var r = document.createElement("button");
       r.type = "button";
-      r.className = "reihe s-" + z + (istFertig ? " fertig" : "");
+      r.className = "reihe s-" + z + (istFertig ? " fertig" : "") + (hatStoerung(h.id) ? " stoerung" : "");
       var rechts = "";
       if (gemerkt(h.id)) rechts += '<svg class="stern2" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8-5.3-2.8-5.3 2.8 1-5.8L3.5 9.7l5.9-.9z"/></svg>';
-      if (wvVon(h.id)) rechts += '<span class="wv' + (faellig(h.id) ? " jetzt2" : "") + '">' +
+      if (wvVon(h.id)) rechts += '<span class="wv' + (hatStoerung(h.id) ? " stoerung" : (faellig(h.id) ? " jetzt2" : "")) + '">' +
         datumText(wvVon(h.id)) + (wzVon(h.id) ? " " + wzVon(h.id) : "") + "</span>";
       else if (z === "arbeit" && werVon(h.id)) rechts += '<span class="wer">' + werVon(h.id) + "</span>";
       else if (!istFertig && strecken[h.id] !== undefined) rechts += '<span class="km">' + weg(strecken[h.id]) + "</span>";
