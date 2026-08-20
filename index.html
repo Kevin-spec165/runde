@@ -140,8 +140,20 @@
   .wannreihe button{border:1px solid color-mix(in srgb,var(--warte) 35%,transparent);background:var(--flaeche);
                     color:var(--warte);border-radius:99px;padding:8px 13px;font:600 13px var(--b);cursor:pointer}
   .wannreihe button.an{background:var(--warte);color:#fff}
-  .wannreihe input{border:1px solid color-mix(in srgb,var(--warte) 35%,transparent);background:var(--flaeche);
-                   color:var(--tinte);border-radius:99px;padding:7px 12px;font:600 13px var(--b)}
+  .genau{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;
+         padding-top:10px;border-top:1px solid color-mix(in srgb,var(--warte) 25%,transparent)}
+  .genau label{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+               color:var(--warte);font-weight:600;margin-bottom:4px}
+  .genau input{width:100%;border:1px solid color-mix(in srgb,var(--warte) 35%,transparent);
+               background:var(--flaeche);color:var(--tinte);border-radius:10px;padding:11px 12px;
+               font:600 15px var(--b);font-variant-numeric:tabular-nums}
+  .genau input:focus{outline:2px solid var(--warte);outline-offset:1px}
+  .zeitwahl{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+  .zeitwahl button{border:1px solid color-mix(in srgb,var(--warte) 30%,transparent);
+                   background:var(--flaeche);color:var(--warte);border-radius:99px;
+                   padding:6px 11px;font:600 12.5px var(--b);cursor:pointer}
+  .zeitwahl button.an{background:var(--warte);color:#fff}
+  .wannreihe input{display:none}
 
   .notiz{width:100%;margin-top:9px;background:var(--flaeche2);border:1px solid var(--linie);
          border-radius:11px;padding:11px;font:400 15px var(--b);color:var(--tinte);resize:none}
@@ -290,6 +302,7 @@ const ELBE=[[50.9631,13.91667],[50.96118,13.90957],[50.96188,13.8978],[50.96515,
   function notizVon(id){ return e(id).n || ""; }
   function werVon(id){ return e(id).w || ""; }
   function wvVon(id){ return e(id).wv || ""; }
+  function wzVon(id){ return e(id).wz || ""; }
   function gemerkt(id){ return !!e(id).m; }
   function fertig(id){ var z = zustand(id); return z === "zugesagt" || z === "abgelehnt"; }
   function heute(){ var d = new Date(); return d.toISOString().slice(0,10); }
@@ -298,8 +311,8 @@ const ELBE=[[50.9631,13.91667],[50.96118,13.90957],[50.96188,13.8978],[50.96515,
   function setzen(id, s){
     if(!stand[id]) stand[id] = {};
     stand[id].s = s;
-    if (s !== "offen") stand[id].w = ich; else { delete stand[id].w; delete stand[id].wv; }
-    if (s !== "warten") delete stand[id].wv;
+    if (s !== "offen") stand[id].w = ich; else { delete stand[id].w; delete stand[id].wv; delete stand[id].wz; }
+    if (s !== "warten") { delete stand[id].wv; delete stand[id].wz; }
     sichern();
   }
   function merken(id){
@@ -310,6 +323,17 @@ const ELBE=[[50.9631,13.91667],[50.96118,13.90957],[50.96188,13.8978],[50.96515,
   function wvSetzen(id, datum){
     if(!stand[id]) stand[id] = {};
     stand[id].wv = datum; stand[id].s = "warten"; stand[id].w = ich; sichern();
+  }
+  function wzSetzen(id, zeit){
+    if(!stand[id]) stand[id] = {};
+    if (zeit) stand[id].wz = zeit; else delete stand[id].wz;
+    if (!stand[id].wv) { stand[id].wv = inTagen(1); stand[id].s = "warten"; stand[id].w = ich; }
+    sichern();
+  }
+  // Tag und Uhrzeit zusammen, so wie man es sagen wuerde
+  function wannText(id){
+    var d = datumText(wvVon(id)), z = wzVon(id);
+    return z ? d + " um " + z + " Uhr" : d;
   }
   function inTagen(n){
     var d = new Date(); d.setDate(d.getDate()+n);
@@ -494,7 +518,8 @@ const ELBE=[[50.9631,13.91667],[50.96118,13.90957],[50.96188,13.8978],[50.96515,
       else if (dvor !== undefined) marken += '<span class="marke">' + weg(dvor) + "</span>";
       else if (idx > 0) marken += '<span class="marke">' + weg(meter(offen[idx-1], h)) + " vom vorigen</span>";
       if (wvVon(h.id)) marken += '<span class="marke w' + (faellig(h.id) ? " faellig" : "") + '">' +
-        (faellig(h.id) ? "Heute dran" : "Wieder " + datumText(wvVon(h.id))) + "</span>";
+        (faellig(h.id) ? "Heute dran" + (wzVon(h.id) ? " um " + wzVon(h.id) : "")
+                       : "Wieder " + wannText(h.id)) + "</span>";
       if (z === "arbeit") marken += '<span class="marke w" style="border-color:var(--akzent);color:var(--akzent)">' +
         (werVon(h.id) === ich ? "Du bist dran" : werVon(h.id) + " ist dran") + "</span>";
       if (idx > 0 && offen[idx-1].k !== h.k) marken += '<span class="marke ruf">Elbseite wechseln</span>';
@@ -582,20 +607,33 @@ const ELBE=[[50.9631,13.91667],[50.96118,13.90957],[50.96188,13.8978],[50.96515,
   }
 
   function wannBlock(h){
-    var w = wvVon(h.id);
-    var opt = [["morgen",1],["in 3 Tagen",3],["nächste Woche",7],["in 2 Wochen",14]];
+    var w = wvVon(h.id), z = wzVon(h.id);
+    var opt = [["morgen",1],["in 3 Tagen",3],["in einer Woche",7],["in 2 Wochen",14]];
     var kn = opt.map(function(o){
       return '<button type="button" data-t="' + o[1] + '"' +
              (w === inTagen(o[1]) ? ' class="an"' : "") + ">" + o[0] + "</button>";
     }).join("");
-    return '<div class="wann"><p>Wann gehst du wieder hin?</p><div class="wannreihe">' + kn +
-           '<input type="date" id="wvDatum" value="' + (w || "") + '"></div></div>';
+    // Zehn bis zwölf ist das beste Fenster: Abreise durch, Anreise noch nicht da.
+    var zeiten = ["10:00","11:00","14:00","16:00"];
+    var zk = zeiten.map(function(x){
+      return '<button type="button" data-z="' + x + '"' + (z === x ? ' class="an"' : "") + ">" + x + "</button>";
+    }).join("");
+    return '<div class="wann">' +
+      "<p>Wann gehst du wieder hin?</p>" +
+      '<div class="wannreihe">' + kn + "</div>" +
+      '<div class="genau">' +
+        '<div><label for="wvDatum">Datum</label><input type="date" id="wvDatum" value="' + (w || "") + '"></div>' +
+        '<div><label for="wvZeit">Uhrzeit</label><input type="time" id="wvZeit" value="' + (z || "") + '"></div>' +
+      "</div>" +
+      '<div class="zeitwahl">' + zk +
+        (z ? '<button type="button" data-z="">Zeit löschen</button>' : "") +
+      "</div></div>";
   }
   function wannVerdrahten(k, h){
     k.querySelectorAll(".wannreihe button").forEach(function(btn){
       btn.addEventListener("click", function(){
         wvSetzen(h.id, inTagen(parseInt(this.dataset.t, 10)));
-        sagen("Wieder dran " + datumText(wvVon(h.id)));
+        sagen("Wieder dran " + wannText(h.id));
         bauen();
       });
     });
@@ -603,8 +641,21 @@ const ELBE=[[50.9631,13.91667],[50.96118,13.90957],[50.96188,13.8978],[50.96515,
     if (dat) dat.addEventListener("change", function(){
       if (!this.value) return;
       wvSetzen(h.id, this.value);
-      sagen("Wieder dran " + datumText(this.value));
+      sagen("Wieder dran " + wannText(h.id));
       bauen();
+    });
+    var zeit = k.querySelector("#wvZeit");
+    if (zeit) zeit.addEventListener("change", function(){
+      wzSetzen(h.id, this.value);
+      sagen(this.value ? "Wieder dran " + wannText(h.id) : "Uhrzeit entfernt");
+      bauen();
+    });
+    k.querySelectorAll(".zeitwahl button").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        wzSetzen(h.id, this.dataset.z);
+        sagen(this.dataset.z ? "Wieder dran " + wannText(h.id) : "Uhrzeit entfernt");
+        bauen();
+      });
     });
   }
 
@@ -620,7 +671,8 @@ const ELBE=[[50.9631,13.91667],[50.96118,13.90957],[50.96188,13.8978],[50.96515,
       r.className = "reihe s-" + z + (istFertig ? " fertig" : "");
       var rechts = "";
       if (gemerkt(h.id)) rechts += '<svg class="stern2" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8-5.3-2.8-5.3 2.8 1-5.8L3.5 9.7l5.9-.9z"/></svg>';
-      if (wvVon(h.id)) rechts += '<span class="wv' + (faellig(h.id) ? " jetzt2" : "") + '">' + datumText(wvVon(h.id)) + "</span>";
+      if (wvVon(h.id)) rechts += '<span class="wv' + (faellig(h.id) ? " jetzt2" : "") + '">' +
+        datumText(wvVon(h.id)) + (wzVon(h.id) ? " " + wzVon(h.id) : "") + "</span>";
       else if (z === "arbeit" && werVon(h.id)) rechts += '<span class="wer">' + werVon(h.id) + "</span>";
       else if (!istFertig && strecken[h.id] !== undefined) rechts += '<span class="km">' + weg(strecken[h.id]) + "</span>";
       else if (!istFertig && h.i) rechts += '<span class="km">Chef</span>';
@@ -713,7 +765,7 @@ const ELBE=[[50.9631,13.91667],[50.96118,13.90957],[50.96188,13.8978],[50.96515,
       z.push(ZUSTAENDE[s].kurz.toUpperCase() + " (" + g.length + ")");
       g.forEach(function(h){
         z.push("  " + h.id + "  " + h.n +
-          (wvVon(h.id) ? "  [wieder " + wvVon(h.id) + "]" : "") +
+          (wvVon(h.id) ? "  [wieder " + wvVon(h.id) + (wzVon(h.id) ? " " + wzVon(h.id) : "") + "]" : "") +
           (werVon(h.id) ? "  [" + werVon(h.id) + "]" : "") +
           (gemerkt(h.id) ? "  [gemerkt]" : "") +
           (notizVon(h.id) ? "  — " + notizVon(h.id) : ""));
