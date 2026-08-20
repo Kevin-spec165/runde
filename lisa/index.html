@@ -604,15 +604,15 @@ html[lang] .titel h1 .kurz{display:none}
     <span data-de><b>Testfassung vom 21. August 2026.</b> Eigenes Material, eigener Text.
       Lisas Stimme ist hier eine Platzhalterstimme vom Rechner und nicht die endgültige —
       die gewählte Stimme ist noch nicht freigeschaltet.
-      <b>Zwei der sieben Aussagen sind Platzhalter</b> und im Bild nicht belegt: die Steckdose
-      neben dem Kissen und der ruhige Blick nach hinten. Sie sind im Kapitel gekennzeichnet.
-      Beim echten Zimmer kommen beide Antworten vom Haus, nicht von mir.
+      <b>Eine der sieben Aussagen ist ein Platzhalter</b> und im Bild nicht belegt: der ruhige
+      Blick nach hinten. Sie ist im Kapitel gekennzeichnet. Beim echten Zimmer kommt die
+      Antwort vom Haus, nicht von mir.
       Nicht für Kunden bestimmt.</span>
     <span data-en><b>Test build, 21 August 2026.</b> Own footage, own script. Lisa's voice here
       is a placeholder from the machine, not the final one — the chosen voice is not yet
-      unlocked. <b>Two of the seven statements are placeholders</b> and are not evidenced in the
-      footage: the socket beside the pillow, and the quiet view to the back. Both are marked in
-      their chapter. For a real room, those answers come from the hotel, not from me.
+      unlocked. <b>One of the seven statements is a placeholder</b> and is not evidenced in the
+      footage: the quiet view to the back. It is marked in its chapter. For a real room, that
+      answer comes from the hotel, not from me.
       Not intended for customers.</span>
   </p>
 </div>
@@ -663,13 +663,13 @@ var KAPITEL = [
     warum:{de:"Die teuerste Frage im ganzen Haus. Wer sie vorher beantwortet, nimmt dem Gast das Risiko ab.",
            en:"The most expensive question in the building. Answer it up front and the risk is gone."} },
 
-  { bei: 21.8, bild:"k3", beleg:"platzhalter", zeit:"0:22",
-    titel:{de:"Der Nachttisch",  en:"The nightstand"},
-    lisa: {de:"Die Steckdose sitzt neben dem Kissen. Sie schlafen nicht neben Ihrem Ladekabel.",
-           en:"The socket sits beside the pillow. You won't be sleeping next to your charger."},
-    frage:{de:"Wo lade ich mein Telefon?", en:"Where do I charge my phone?"},
-    warum:{de:"Winzig, und trotzdem der häufigste Ärger im Zimmer. Genau deshalb wirkt die Antwort.",
-           en:"Tiny, and still the most common annoyance in a room. Which is exactly why answering it lands."} },
+  { bei: 21.8, bild:"k3", beleg:"geprueft", zeit:"0:22",
+    titel:{de:"Der Sessel",     en:"The chair"},
+    lisa: {de:"Und ein Sessel. Kein Hocker, kein Alibi. Ohne ihn landet man abends auf dem Bett.",
+           en:"And a chair. Not a stool, not a gesture. Without one, you end up on the bed."},
+    frage:{de:"Wo sitze ich, außer auf dem Bett?", en:"Where do I sit, other than the bed?"},
+    warum:{de:"Steht auf keiner Buchungsseite und entscheidet trotzdem, ob ein Zimmer als eng empfunden wird.",
+           en:"Never listed on a booking site, and still it decides whether a room feels cramped."} },
 
   { bei: 29.8, bild:"k4", beleg:"geprueft", zeit:"0:30",
     titel:{de:"Der Schreibtisch", en:"The desk"},
@@ -932,7 +932,11 @@ function oeffne(){
   if(kino.readyState >= 3) los();
   else kino.addEventListener("canplay", los, { once:true });
 
-  $("zu").focus();
+  /* Erst wenn der Film wirklich sichtbar ist, nimmt er den Fokus an.
+     Vorher steht er auf "versteckt" und der Fokus bleibt dahinter haengen. */
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){ $("zu").focus(); });
+  });
 }
 
 function schliesse(){
@@ -982,9 +986,15 @@ document.addEventListener("keydown", function(e){
 });
 
 /* ================================================================= Sprache */
-function setzeSprache(neu){
+function setzeSprache(neu, ausAdresse){
   sprache = neu;
   document.documentElement.lang = neu;
+  /* Sprache in die Adresse schreiben, damit ein weitergegebener Link in
+     der Sprache aufgeht, in der er verschickt wurde. Ohne neuen Eintrag
+     im Verlauf - der Zurueck-Knopf soll nicht die Sprache zuruecknehmen. */
+  if(!ausAdresse && history.replaceState){
+    try{ history.replaceState(null, "", neu === "de" ? location.pathname : "?s=en"); }catch(e){}
+  }
   $("bDe").setAttribute("aria-pressed", neu === "de");
   $("bEn").setAttribute("aria-pressed", neu === "en");
   document.title = neu === "de" ? "Lisa — Zimmerrundgang" : "Lisa — Room tour";
@@ -1003,6 +1013,14 @@ function setzeSprache(neu){
     if(i >= 0){ zeigeZeile(i); if(!stumm) sprich(i); }
   }
 }
+/* Beim Aufmachen: Sprache aus der Adresse, sonst aus dem Browser, sonst Deutsch. */
+(function(){
+  var ausAdresse = (location.search.match(/[?&]s=(de|en)/) || [])[1];
+  var ausBrowser = (navigator.language || "de").slice(0,2) === "en" ? "en" : "de";
+  var start = ausAdresse || ausBrowser;
+  if(start === "en"){ ladeStimmen("en"); setzeSprache("en", true); }
+})();
+
 $("bDe").addEventListener("click", function(){ setzeSprache("de"); });
 $("bEn").addEventListener("click", function(){ ladeStimmen("en"); setzeSprache("en"); });
 /* Sobald die Maus die englische Seite auch nur beruehrt, wird geladen. */
