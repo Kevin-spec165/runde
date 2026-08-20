@@ -1,0 +1,104 @@
+{
+ "de": [
+  {
+   "nr": 1,
+   "text": "Sie stehen in der Tür. Und das Erste, was Sie sehen, ist nicht der Fernseher. Sondern Licht.",
+   "sek": 7.15,
+   "woerter": 17,
+   "wpm": 143
+  },
+  {
+   "nr": 2,
+   "text": "Das Kopfende steht an der Wand, nicht unter dem Fenster. Klingt nebensächlich. Ist der Unterschied zwischen durchschlafen und um vier wach sein.",
+   "sek": 10.41,
+   "woerter": 22,
+   "wpm": 127
+  },
+  {
+   "nr": 3,
+   "text": "Die Steckdose sitzt neben dem Kissen. Sie schlafen nicht neben Ihrem Ladekabel.",
+   "sek": 5.82,
+   "woerter": 12,
+   "wpm": 124
+  },
+  {
+   "nr": 4,
+   "text": "Der Schreibtisch ist keine Ablage. Durchgehende Platte, echter Stuhl mit Rollen. Ein Vormittag geht hier.",
+   "sek": 7.76,
+   "woerter": 15,
+   "wpm": 116
+  },
+  {
+   "nr": 5,
+   "text": "Nichts davon müssen Sie benutzen. Es steht da, damit der Raum nicht leer wirkt.",
+   "sek": 5.9,
+   "woerter": 14,
+   "wpm": 142
+  },
+  {
+   "nr": 6,
+   "text": "Der Blick geht nach hinten hinaus. Keine Straßenbahn. Kein Lieferwagen um sechs.",
+   "sek": 6.53,
+   "woerter": 12,
+   "wpm": 110
+  },
+  {
+   "nr": 7,
+   "text": "Mehr müssen Sie nicht tun, als anzukommen.",
+   "sek": 3.47,
+   "woerter": 7,
+   "wpm": 121
+  }
+ ],
+ "en": [
+  {
+   "nr": 1,
+   "text": "You are standing in the doorway. And the first thing you see is not the television. It is light.",
+   "sek": 6.25,
+   "woerter": 19,
+   "wpm": 182
+  },
+  {
+   "nr": 2,
+   "text": "The headboard is against the wall, not under the window. Sounds minor. It is the difference between sleeping through, and waking at four.",
+   "sek": 8.88,
+   "woerter": 23,
+   "wpm": 155
+  },
+  {
+   "nr": 3,
+   "text": "The socket sits beside the pillow. You will not be sleeping next to your charger.",
+   "sek": 5.29,
+   "woerter": 15,
+   "wpm": 170
+  },
+  {
+   "nr": 4,
+   "text": "The desk is not a shelf, it is a workplace. One continuous surface, a real chair on castors. You could spend a morning here.",
+   "sek": 8.86,
+   "woerter": 24,
+   "wpm": 162
+  },
+  {
+   "nr": 5,
+   "text": "None of this is for you to use. It is here so the room looks lived in, before you arrive.",
+   "sek": 5.89,
+   "woerter": 20,
+   "wpm": 204
+  },
+  {
+   "nr": 6,
+   "text": "The view faces the back. No tram. No delivery van at six.",
+   "sek": 5.13,
+   "woerter": 12,
+   "wpm": 140
+  },
+  {
+   "nr": 7,
+   "text": "There is nothing left to do, but arrive.",
+   "sek": 2.93,
+   "woerter": 8,
+   "wpm": 164
+  }
+ ]
+}
