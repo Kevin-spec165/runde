@@ -227,7 +227,7 @@ const ELBE=[[50.9631,13.91667],[50.96118,13.90957],[50.96188,13.8978],[50.96515,
     </div>
     <div class="filter" id="filter">
       <button type="button" data-f="alle" class="an">Alle</button>
-      <button type="button" data-f="faellig">Fällig <span class="n" id="nFaellig"></span></button>
+      <button type="button" data-f="faellig">Heute dran <span class="n" id="nFaellig"></span></button>
       <button type="button" data-f="gemerkt">Gemerkt <span class="n" id="nGemerkt"></span></button>
       <button type="button" data-f="meine">Meine</button>
     </div>
@@ -277,11 +277,11 @@ const ELBE=[[50.9631,13.91667],[50.96118,13.90957],[50.96188,13.8978],[50.96515,
   }
 
   var ZUSTAENDE = {
-    offen:     {kurz:"offen",        farbe:""},
-    arbeit:    {kurz:"läuft",        farbe:"a"},
-    warten:    {kurz:"Wiedervorlage",farbe:"w"},
-    zugesagt:  {kurz:"Zimmer zugesagt", farbe:"j"},
-    abgelehnt: {kurz:"abgelehnt",    farbe:"n"}
+    offen:     {kurz:"offen",           wo:"offen"},
+    arbeit:    {kurz:"läuft",           wo:"läuft"},
+    warten:    {kurz:"Wiedervorlage",   wo:"Wiedervorl."},
+    zugesagt:  {kurz:"Zimmer zugesagt", wo:"zugesagt"},
+    abgelehnt: {kurz:"abgelehnt",       wo:"Nein"}
   };
 
   function sichern(){ try{ localStorage.setItem(SP, JSON.stringify(stand)); }catch(e){} }
@@ -401,21 +401,21 @@ const ELBE=[[50.9631,13.91667],[50.96118,13.90957],[50.96188,13.8978],[50.96515,
   var ERKLAERT = {
     alle:      ["Alle Häuser", "in Laufreihenfolge. Oben steht, wo du als Nächstes hingehst."],
     offen:     ["Noch nicht angesprochen", "— hier warst du noch gar nicht."],
-    arbeit:    ["Gespräch begonnen", "— angefangen, aber noch nichts entschieden."],
-    warten:    ["Wiedervorlage", "— du hast einen Tag gesetzt und kommst wieder."],
+    arbeit:    ["Läuft", "— du warst da, es ist noch nichts entschieden. Kein Datum gesetzt."],
+    warten:    ["Wiedervorlage", "— alle mit gesetztem Tag, auch die weiter in der Zukunft."],
     zugesagt:  ["Zimmer zugesagt", "— du darfst filmen. Das ist deine Ausbeute."],
     abgelehnt: ["Kein Interesse", "— abgehakt, kommt nicht wieder."],
-    faellig:   ["Heute dran", "— Wiedervorlage ist erreicht oder überfällig. Hier zuerst hin."],
+    faellig:   ["Heute dran", "— von den Wiedervorlagen oben die, deren Tag jetzt gekommen ist. Hier gehst du als Erstes hin."],
     gemerkt:   ["Gemerkt", "— mit dem Stern für später markiert, unabhängig vom Stand."],
     meine:     ["Von dir bearbeitet", "— trägt deinen Namen. Zählt erst, wenn ihr zu zweit lauft."]
   };
   var LEER = {
     offen:     "Alle Häuser sind angefasst. Ordentlich.",
-    arbeit:    "Kein Gespräch offen. Wenn du irgendwo angefangen hast, tippe dort auf „In Bearbeitung“.",
+    arbeit:    "Kein Gespräch offen. Tippst du bei einem Haus auf „In Bearbeitung“, taucht es hier auf.",
     warten:    "Keine Wiedervorlage gesetzt. Ist der Chef nicht da, tippe auf „Wiedervorlage“ und wähl einen Tag.",
     zugesagt:  "Noch kein Zimmer zugesagt. Das ändert sich beim ersten Ja.",
     abgelehnt: "Noch keine Absage. Kommt schon.",
-    faellig:   "Heute ist nichts fällig. Hier tauchen Häuser von selbst auf, sobald ihr Tag erreicht ist.",
+    faellig:   "Heute steht nichts an. Hier landen Häuser von selbst, sobald der Tag ihrer Wiedervorlage gekommen ist — nicht durch „In Bearbeitung“.",
     gemerkt:   "Nichts gemerkt. Tippe oben rechts auf den Stern, um ein Haus für später vorzumerken.",
     meine:     "Nichts von dir bearbeitet. Sobald du irgendwo einen Stand setzt, steht dein Name dran.",
     alle:      "Alles durch. Sag Bescheid, dann hole ich neue Häuser."
@@ -547,11 +547,11 @@ const ELBE=[[50.9631,13.91667],[50.96118,13.90957],[50.96188,13.8978],[50.96515,
           if (neu === zustand(h.id)){ setzen(h.id, "offen"); sagen("Zurückgesetzt"); bauen(); return; }
           if (neu === "warten"){
             wvSetzen(h.id, inTagen(2));
-            sagen("Wiedervorlage gesetzt — Tag unten wählen");
+            sagen("Wähl unten den Tag — dann steht es unter „Heute dran“");
             bauen(); return;
           }
           setzen(h.id, neu);
-          sagen(h.n + " — " + ZUSTAENDE[neu].kurz);
+          sagen(h.n + " steht jetzt oben unter „" + ZUSTAENDE[neu].wo + "“");
           if (neu === "zugesagt" || neu === "abgelehnt") aktuell = null;
           bauen(); window.scrollTo({top:0, behavior:"smooth"});
         });
