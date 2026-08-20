@@ -24,7 +24,7 @@
 :root{
   --tinte:#f4f5f7;
   --tinte-leise:#8b9099;
-  --tinte-still:#5a5f68;
+  --tinte-still:#767b85;
   --grund:#08090b;
   --grund-hoch:#101216;
   --haar:rgba(244,245,247,.11);
@@ -614,7 +614,7 @@ var KAPITEL = [
   { bei: 1.2,  bild:"k1", zeit:"0:01",
     titel:{de:"Die Tür",        en:"The doorway"},
     lisa: {de:"Sie stehen in der Tür. Und das Erste, was Sie sehen, ist nicht der Fernseher. Sondern Licht.",
-           en:"You are standing in the doorway. And the first thing you see is not the television. It is light."},
+           en:"You're standing in the doorway. And the first thing you see isn't the television. It's light."},
     frage:{de:"Sieht es aus wie auf den Fotos?",  en:"Does it look like the photos?"},
     warum:{de:"Die Frage hinter jeder Buchung. Ein durchgehender Zug kann nicht schönen — genau das ist sein Wert.",
            en:"The question behind every booking. One continuous take cannot flatter — that is exactly its value."} },
@@ -622,7 +622,7 @@ var KAPITEL = [
   { bei: 10.0, bild:"k2", zeit:"0:10",
     titel:{de:"Das Bett",       en:"The bed"},
     lisa: {de:"Das Kopfende steht an der Wand, nicht unter dem Fenster. Klingt nebensächlich. Ist der Unterschied zwischen durchschlafen und um vier wach sein.",
-           en:"The headboard is against the wall, not under the window. Sounds minor. It is the difference between sleeping through, and waking at four."},
+           en:"The headboard is against the wall, not under the window. Sounds minor. It's the difference between sleeping through the night, and waking at four."},
     frage:{de:"Schlafe ich hier durch?",  en:"Will I sleep through the night?"},
     warum:{de:"Die teuerste Frage im ganzen Haus. Wer sie vorher beantwortet, nimmt dem Gast das Risiko ab.",
            en:"The most expensive question in the building. Answer it up front and the risk is gone."} },
@@ -630,7 +630,7 @@ var KAPITEL = [
   { bei: 21.8, bild:"k3", zeit:"0:22",
     titel:{de:"Der Nachttisch",  en:"The nightstand"},
     lisa: {de:"Die Steckdose sitzt neben dem Kissen. Sie schlafen nicht neben Ihrem Ladekabel.",
-           en:"The socket sits beside the pillow. You will not be sleeping next to your charger."},
+           en:"The socket sits beside the pillow. You won't be sleeping next to your charger."},
     frage:{de:"Wo lade ich mein Telefon?", en:"Where do I charge my phone?"},
     warum:{de:"Winzig, und trotzdem der häufigste Ärger im Zimmer. Genau deshalb wirkt die Antwort.",
            en:"Tiny, and still the most common annoyance in a room. Which is exactly why answering it lands."} },
@@ -638,7 +638,7 @@ var KAPITEL = [
   { bei: 29.8, bild:"k4", zeit:"0:30",
     titel:{de:"Der Schreibtisch", en:"The desk"},
     lisa: {de:"Der Schreibtisch ist keine Ablage. Durchgehende Platte, echter Stuhl mit Rollen. Ein Vormittag geht hier.",
-           en:"The desk is not a shelf, it is a workplace. One continuous surface, a real chair on castors. You could spend a morning here."},
+           en:"The desk isn't a shelf. One continuous surface, a real chair on castors. A morning works here."},
     frage:{de:"Kann ich hier arbeiten?", en:"Can I actually work here?"},
     warum:{de:"Entscheidet über Geschäftsreisende — und über die Buchung von Sonntag auf Montag.",
            en:"Decides the business traveller — and the Sunday-to-Monday booking."} },
@@ -646,7 +646,7 @@ var KAPITEL = [
   { bei: 40.2, bild:"k5", zeit:"0:40",
     titel:{de:"Die Ablage",     en:"The surfaces"},
     lisa: {de:"Nichts davon müssen Sie benutzen. Es steht da, damit der Raum nicht leer wirkt.",
-           en:"None of this is for you to use. It is here so the room looks lived in, before you arrive."},
+           en:"None of this is for you to use. It's here so the room doesn't feel empty."},
     frage:{de:"Bewohnt oder steril?", en:"Lived in, or sterile?"},
     warum:{de:"Der einzige Satz im Rundgang, der nichts verkauft. Deshalb glaubt man den anderen sechs.",
            en:"The one line in the tour that sells nothing. Which is why the other six are believed."} },
@@ -662,7 +662,7 @@ var KAPITEL = [
   { bei: 53.6, bild:"k7", zeit:"0:54",
     titel:{de:"Der Abschluss",  en:"The close"},
     lisa: {de:"Mehr müssen Sie nicht tun, als anzukommen.",
-           en:"There is nothing left to do, but arrive."},
+           en:"There's nothing left to do but arrive."},
     frage:{de:"Und jetzt?", en:"And now?"},
     warum:{de:"Ein Rundgang endet nicht mit einem Angebot. Er endet damit, dass nichts mehr offen ist.",
            en:"A tour does not end with an offer. It ends with nothing left open."} }
@@ -898,8 +898,20 @@ $("halt").addEventListener("click", function(){
 kino.addEventListener("pause", function(){ try{ stimme.pause(); }catch(e){} });
 
 document.addEventListener("keydown", function(e){
-  if(e.key === "Escape" && film.classList.contains("an")) schliesse();
-  if(e.key === " " && film.classList.contains("an")){ e.preventDefault(); $("halt").click(); }
+  var offen = film.classList.contains("an");
+  if(e.key === "Escape" && offen) return schliesse();
+  if(e.key === " " && offen){ e.preventDefault(); return $("halt").click(); }
+
+  /* Solange der Film laeuft, bleibt der Fokus in ihm. Sonst springt die
+     Tabtaste auf die Knoepfe dahinter, die niemand sehen kann. */
+  if(e.key === "Tab" && offen){
+    var innen = film.querySelectorAll("button");
+    if(!innen.length) return;
+    var erst = innen[0], letzt = innen[innen.length - 1];
+    if(e.shiftKey && document.activeElement === erst){ e.preventDefault(); letzt.focus(); }
+    else if(!e.shiftKey && document.activeElement === letzt){ e.preventDefault(); erst.focus(); }
+    else if(!film.contains(document.activeElement)){ e.preventDefault(); erst.focus(); }
+  }
 });
 
 /* ================================================================= Sprache */
@@ -910,6 +922,13 @@ function setzeSprache(neu){
   $("bEn").setAttribute("aria-pressed", neu === "en");
   document.title = neu === "de" ? "Lisa — Zimmerrundgang" : "Lisa — Room tour";
   $("start").setAttribute("aria-label", neu === "de" ? "Rundgang starten" : "Start the tour");
+  $("start2").setAttribute("aria-label", neu === "de" ? "Rundgang ansehen" : "Watch the tour");
+  $("halt").setAttribute("aria-label", neu === "de" ? "Anhalten oder weiter" : "Pause or resume");
+  $("zu").setAttribute("aria-label", neu === "de" ? "Rundgang schließen" : "Close the tour");
+  film.setAttribute("aria-label", neu === "de" ? "Rundgang" : "Room tour");
+  $("bTon").setAttribute("aria-label", stumm
+    ? (neu === "de" ? "Ton an" : "Sound on")
+    : (neu === "de" ? "Ton aus" : "Sound off"));
   /* Laeuft der Film gerade, wechselt auch die Stimme sofort mit. */
   if(laeuft){
     var t = kino.currentTime, i = -1;
