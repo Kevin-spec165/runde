@@ -184,6 +184,18 @@ html[lang="de"] [data-de],html[lang="en"] [data-en]{display:revert}
   100%{transform:scale(1.42);opacity:0}
 }
 .knopf svg{position:relative;width:22%;height:22%;fill:var(--tinte);margin-left:8%}
+/* Ladering: legt sich auf den Rand des Knopfes und fuellt sich mit dem,
+   was der Browser vom Video schon hat. Verschwindet, sobald es reicht. */
+.knopf .ladering{
+  position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);
+  pointer-events:none;overflow:visible;
+}
+.knopf .ladering circle{
+  fill:none;stroke:var(--akzent);stroke-width:1.5;
+  stroke-dasharray:311;stroke-dashoffset:311;
+  transition:stroke-dashoffset .6s var(--weich),opacity .6s var(--weich);
+}
+.knopf.bereit .ladering circle{opacity:0}
 .knopf .wort{
   position:absolute;left:50%;transform:translateX(-50%);bottom:-34px;white-space:nowrap;
   font-family:var(--mono);font-size:10px;letter-spacing:.26em;text-transform:uppercase;
@@ -381,6 +393,21 @@ html[lang="de"] [data-de],html[lang="en"] [data-en]{display:revert}
 .film .zu svg{width:13px;height:13px;stroke:var(--tinte);stroke-width:1.6;fill:none;stroke-linecap:round}
 .film .halt{position:absolute;inset:0;z-index:2}
 
+.laedt{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;
+  display:flex;align-items:center;gap:14px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;
+  color:var(--tinte-leise);
+  opacity:0;visibility:hidden;transition:opacity .45s var(--weich),visibility .45s;
+}
+.laedt.da{opacity:1;visibility:visible}
+.laedt .kringel{
+  width:15px;height:15px;border-radius:50%;
+  border:1.5px solid rgba(244,245,247,.2);border-top-color:var(--akzent);
+  animation:kreisen .85s linear infinite;
+}
+@keyframes kreisen{to{transform:rotate(360deg)}}
+
 .warnung{
   position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:5;
   max-width:32ch;text-align:center;font-size:14px;line-height:1.6;color:var(--tinte);
@@ -445,13 +472,16 @@ html[lang="de"] [data-de],html[lang="en"] [data-en]{display:revert}
 <!-- ================================================================== Buehne -->
 <section class="buehne" id="buehne">
   <img class="platzhalter" src="bild/poster.jpg" alt="" aria-hidden="true">
-  <video id="vorschau" src="tour.mp4" muted playsinline loop preload="metadata" aria-hidden="true"></video>
+  <video id="vorschau" src="tour.mp4" muted playsinline loop preload="auto" aria-hidden="true"></video>
   <div class="schleier"></div>
   <div class="korn" aria-hidden="true"></div>
 
   <button class="knopf" id="start" aria-label="Rundgang starten">
     <span class="scheibe"></span>
     <span class="puls" aria-hidden="true"></span>
+    <svg class="ladering" viewBox="0 0 100 100" aria-hidden="true">
+      <circle cx="50" cy="50" r="49.5"></circle>
+    </svg>
     <svg viewBox="0 0 12 12" aria-hidden="true"><polygon points="2,1 11,6 2,11"/></svg>
     <span class="wort"><span data-de>Rundgang</span><span data-en>Take the tour</span></span>
   </button>
@@ -541,6 +571,10 @@ html[lang="de"] [data-de],html[lang="en"] [data-en]{display:revert}
   <div class="zeile"><p id="zeile"></p></div>
   <div class="kapitelname" id="kapitelname"></div>
   <div class="balken" id="balken"></div>
+  <div class="laedt" id="laedt">
+    <span class="kringel" aria-hidden="true"></span>
+    <span data-de>Der Rundgang lädt</span><span data-en>Loading the tour</span>
+  </div>
   <div class="warnung" id="warnung"></div>
 </div>
 
@@ -697,7 +731,31 @@ document.addEventListener("visibilitychange", function(){
 
 /* =========================================================== Der Film selbst */
 var film = $("film"), kino = $("kino"), zeileEl = $("zeile"),
-    kapName = $("kapitelname"), warnung = $("warnung");
+    kapName = $("kapitelname"), warnung = $("warnung"), laedtEl = $("laedt");
+var knopf = $("start");
+
+/* ---------------------------------------------------------- Ladestand
+   Wieviel vom Film liegt schon da? Der Browser weiss es, also fragen wir
+   ihn, statt einen Balken zu erfinden. Der Ring am Knopf zeigt es. */
+var GENUG = 0.35;          /* ab 35 Prozent startet es ohne Stocken */
+function ladestand(v){
+  try{
+    if(!v.buffered || !v.buffered.length || !v.duration) return 0;
+    return Math.min(v.buffered.end(v.buffered.length - 1) / v.duration, 1);
+  }catch(e){ return 0; }
+}
+function zeigeLadestand(){
+  var p = Math.max(ladestand(kino), ladestand(vorschau));
+  var ring = knopf.querySelector(".ladering circle");
+  if(ring) ring.style.strokeDashoffset = (311 * (1 - p)).toFixed(1);
+  knopf.classList.toggle("bereit", p >= GENUG);
+  if(film.classList.contains("an")) laedtEl.classList.toggle("da", kino.readyState < 3);
+}
+setInterval(zeigeLadestand, 400);
+kino.addEventListener("progress", zeigeLadestand);
+kino.addEventListener("canplay", zeigeLadestand);
+kino.addEventListener("waiting", function(){ laedtEl.classList.add("da"); });
+kino.addEventListener("playing", function(){ laedtEl.classList.remove("da"); });
 var stimme = new Audio(); stimme.preload = "auto";
 var gesagt = [], laeuft = false;
 
@@ -757,11 +815,21 @@ function oeffne(){
   document.body.style.overflow = "hidden";
   vorschau.pause();
   try{ kino.currentTime = 0; }catch(e){}
-  kino.play().catch(function(){
-    zeigeWarnung(sprache === "de"
-      ? "Die Wiedergabe wurde blockiert. Tippen Sie noch einmal."
-      : "Playback was blocked. Please tap again.");
-  });
+  laedtEl.classList.toggle("da", kino.readyState < 3);
+
+  /* Erst spielen, wenn genug da ist. Sonst friert das erste Bild ein und
+     der Ton laeuft davon - der haesslichste Fehler, den eine Fuehrung hat. */
+  function los(){
+    laedtEl.classList.remove("da");
+    kino.play().catch(function(){
+      zeigeWarnung(sprache === "de"
+        ? "Die Wiedergabe wurde blockiert. Tippen Sie noch einmal auf das Bild."
+        : "Playback was blocked. Please tap the picture again.");
+    });
+  }
+  if(kino.readyState >= 3) los();
+  else kino.addEventListener("canplay", los, { once:true });
+
   $("zu").focus();
 }
 
