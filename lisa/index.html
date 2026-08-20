@@ -301,6 +301,14 @@ html[lang] .titel h1 .kurz{display:none}
   padding-left:22px;border-left:1px solid var(--akzent);
   margin-bottom:30px;
 }
+/* Platzhalter-Vermerk. Muss auffallen, ohne das Kapitel zu zerstoeren -
+   das ist eine Warnung an Kevin, nicht an einen Gast. */
+.kap .platzhalter{
+  display:flex;gap:10px;align-items:flex-start;
+  font-family:var(--mono);font-size:10px;line-height:1.6;letter-spacing:.05em;
+  color:#d8a66a;border-left:1px solid #d8a66a;padding-left:11px;margin-bottom:22px;
+  max-width:40ch;text-transform:uppercase;
+}
 .kap .frage{
   font-size:14.5px;line-height:1.6;color:var(--tinte-leise);max-width:38ch;
 }
@@ -481,6 +489,10 @@ html[lang] .titel h1 .kurz{display:none}
 
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
+  .knopf .puls,.laedt .kringel,.korn{animation:none}
+  .laedt .kringel{border-top-color:var(--akzent);border-color:var(--akzent)}
+  .kapbild{opacity:1!important;transform:none!important}
+  .saeule img.da{transform:none}
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
                        transition-duration:.01ms!important}
   .steig,.kap>*{opacity:1;transform:none}
@@ -591,10 +603,17 @@ html[lang] .titel h1 .kurz{display:none}
   <p>
     <span data-de><b>Testfassung vom 21. August 2026.</b> Eigenes Material, eigener Text.
       Lisas Stimme ist hier eine Platzhalterstimme vom Rechner und nicht die endgültige —
-      die gewählte Stimme ist noch nicht freigeschaltet. Nicht für Kunden bestimmt.</span>
+      die gewählte Stimme ist noch nicht freigeschaltet.
+      <b>Zwei der sieben Aussagen sind Platzhalter</b> und im Bild nicht belegt: die Steckdose
+      neben dem Kissen und der ruhige Blick nach hinten. Sie sind im Kapitel gekennzeichnet.
+      Beim echten Zimmer kommen beide Antworten vom Haus, nicht von mir.
+      Nicht für Kunden bestimmt.</span>
     <span data-en><b>Test build, 21 August 2026.</b> Own footage, own script. Lisa's voice here
       is a placeholder from the machine, not the final one — the chosen voice is not yet
-      unlocked. Not intended for customers.</span>
+      unlocked. <b>Two of the seven statements are placeholders</b> and are not evidenced in the
+      footage: the socket beside the pillow, and the quiet view to the back. Both are marked in
+      their chapter. For a real room, those answers come from the hotel, not from me.
+      Not intended for customers.</span>
   </p>
 </div>
 
@@ -628,7 +647,7 @@ html[lang] .titel h1 .kurz{display:none}
    37-40) bleiben absichtlich still.
    ====================================================================== */
 var KAPITEL = [
-  { bei: 1.2,  bild:"k1", zeit:"0:01",
+  { bei: 1.2,  bild:"k1", beleg:"geprueft", zeit:"0:01",
     titel:{de:"Die Tür",        en:"The doorway"},
     lisa: {de:"Sie stehen in der Tür. Und das Erste, was Sie sehen, ist nicht der Fernseher. Sondern Licht.",
            en:"You're standing in the doorway. And the first thing you see isn't the television. It's light."},
@@ -636,7 +655,7 @@ var KAPITEL = [
     warum:{de:"Die Frage hinter jeder Buchung. Ein durchgehender Zug kann nicht schönen — genau das ist sein Wert.",
            en:"The question behind every booking. One continuous take cannot flatter — that is exactly its value."} },
 
-  { bei: 10.0, bild:"k2", zeit:"0:10",
+  { bei: 10.0, bild:"k2", beleg:"geprueft", zeit:"0:10",
     titel:{de:"Das Bett",       en:"The bed"},
     lisa: {de:"Das Kopfende steht an der Wand, nicht unter dem Fenster. Klingt nebensächlich. Ist der Unterschied zwischen durchschlafen und um vier wach sein.",
            en:"The headboard is against the wall, not under the window. Sounds minor. It's the difference between sleeping through the night, and waking at four."},
@@ -644,7 +663,7 @@ var KAPITEL = [
     warum:{de:"Die teuerste Frage im ganzen Haus. Wer sie vorher beantwortet, nimmt dem Gast das Risiko ab.",
            en:"The most expensive question in the building. Answer it up front and the risk is gone."} },
 
-  { bei: 21.8, bild:"k3", zeit:"0:22",
+  { bei: 21.8, bild:"k3", beleg:"platzhalter", zeit:"0:22",
     titel:{de:"Der Nachttisch",  en:"The nightstand"},
     lisa: {de:"Die Steckdose sitzt neben dem Kissen. Sie schlafen nicht neben Ihrem Ladekabel.",
            en:"The socket sits beside the pillow. You won't be sleeping next to your charger."},
@@ -652,7 +671,7 @@ var KAPITEL = [
     warum:{de:"Winzig, und trotzdem der häufigste Ärger im Zimmer. Genau deshalb wirkt die Antwort.",
            en:"Tiny, and still the most common annoyance in a room. Which is exactly why answering it lands."} },
 
-  { bei: 29.8, bild:"k4", zeit:"0:30",
+  { bei: 29.8, bild:"k4", beleg:"geprueft", zeit:"0:30",
     titel:{de:"Der Schreibtisch", en:"The desk"},
     lisa: {de:"Der Schreibtisch ist keine Ablage. Durchgehende Platte, echter Stuhl mit Rollen. Ein Vormittag geht hier.",
            en:"The desk isn't a shelf. One continuous surface, a real chair on castors. A morning works here."},
@@ -660,7 +679,7 @@ var KAPITEL = [
     warum:{de:"Entscheidet über Geschäftsreisende — und über die Buchung von Sonntag auf Montag.",
            en:"Decides the business traveller — and the Sunday-to-Monday booking."} },
 
-  { bei: 40.2, bild:"k5", zeit:"0:40",
+  { bei: 40.2, bild:"k5", beleg:"geprueft", zeit:"0:40",
     titel:{de:"Die Ablage",     en:"The surfaces"},
     lisa: {de:"Nichts davon müssen Sie benutzen. Es steht da, damit der Raum nicht leer wirkt.",
            en:"None of this is for you to use. It's here so the room doesn't feel empty."},
@@ -668,7 +687,7 @@ var KAPITEL = [
     warum:{de:"Der einzige Satz im Rundgang, der nichts verkauft. Deshalb glaubt man den anderen sechs.",
            en:"The one line in the tour that sells nothing. Which is why the other six are believed."} },
 
-  { bei: 46.6, bild:"k6", zeit:"0:47",
+  { bei: 46.6, bild:"k6", beleg:"platzhalter", zeit:"0:47",
     titel:{de:"Das Fenster",    en:"The window"},
     lisa: {de:"Der Blick geht nach hinten. Keine Straßenbahn. Kein Lieferwagen um sechs.",
            en:"The view faces the back. No tram. No delivery van at six."},
@@ -676,7 +695,7 @@ var KAPITEL = [
     warum:{de:"Die Frage, die im Buchungsportal nie steht und trotzdem jede zweite Bewertung bestimmt.",
            en:"Never asked on a booking site, and still it drives every second review."} },
 
-  { bei: 53.6, bild:"k7", zeit:"0:54",
+  { bei: 53.6, bild:"k7", beleg:"geprueft", zeit:"0:54",
     titel:{de:"Der Abschluss",  en:"The close"},
     lisa: {de:"Mehr müssen Sie nicht tun, als anzukommen.",
            en:"There's nothing left to do but arrive."},
@@ -702,6 +721,10 @@ KAPITEL.forEach(function(k, i){
     '<div class="nr"><span>' + String(i+1).padStart(2,"0") + ' / 07</span><i></i><span>' + k.zeit + '</span></div>' +
     '<h2><span data-de>' + k.titel.de + '</span><span data-en>' + k.titel.en + '</span></h2>' +
     '<blockquote><span data-de>' + k.lisa.de + '</span><span data-en>' + k.lisa.en + '</span></blockquote>' +
+    (k.beleg === "platzhalter"
+      ? '<div class="platzhalter"><span data-de>Platzhalter — im Bild nicht belegt. Beim echten Zimmer kommt die Antwort vom Haus.</span>' +
+        '<span data-en>Placeholder — not evidenced in the footage. For a real room this answer comes from the hotel.</span></div>'
+      : '') +
     '<div class="frage">' +
       '<b><span data-de>Beantwortet</span><span data-en>Answers</span></b>' +
       '<span data-de>' + k.frage.de + ' — ' + k.warum.de + '</span>' +
@@ -793,6 +816,25 @@ setInterval(zeigeLadestand, 400);
 kino.addEventListener("progress", zeigeLadestand);
 kino.addEventListener("canplay", zeigeLadestand);
 kino.addEventListener("waiting", function(){ laedtEl.classList.add("da"); });
+kino.addEventListener("error", function(){
+  laedtEl.classList.remove("da");
+  zeigeWarnung(sprache === "de"
+    ? "Der Rundgang lässt sich gerade nicht laden. Prüfen Sie die Verbindung und versuchen Sie es noch einmal."
+    : "The tour cannot be loaded right now. Check your connection and try again.");
+});
+/* Laedt nach zwanzig Sekunden immer noch nichts, sagen wir das - statt den
+   Kringel endlos drehen zu lassen. */
+var wartet = null;
+kino.addEventListener("waiting", function(){
+  clearTimeout(wartet);
+  wartet = setTimeout(function(){
+    if(kino.readyState < 3 && film.classList.contains("an"))
+      zeigeWarnung(sprache === "de"
+        ? "Das dauert länger als gewöhnlich. Der Rundgang ist 66 MB groß."
+        : "This is taking longer than usual. The tour is 66 MB.");
+  }, 20000);
+});
+kino.addEventListener("playing", function(){ clearTimeout(wartet); });
 kino.addEventListener("playing", function(){ laedtEl.classList.remove("da"); });
 var stimme = new Audio(); stimme.preload = "auto";
 var gesagt = [], laeuft = false;
@@ -852,6 +894,14 @@ function beiZeit(){
   }
 }
 kino.addEventListener("timeupdate", beiZeit);
+/* Wer zurueckspringt, hat die Kapitel danach nicht mehr gehoert. Also
+   werden sie wieder freigegeben, sonst schweigt Lisa beim zweiten Mal. */
+kino.addEventListener("seeked", function(){
+  var t = kino.currentTime;
+  for(var i = 0; i < KAPITEL.length; i++)
+    if(KAPITEL[i].bei > t) gesagt[i] = false;
+  beiZeit();
+});
 
 kino.addEventListener("ended", function(){
   laeuft = false;
