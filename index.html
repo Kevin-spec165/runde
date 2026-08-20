@@ -45,7 +45,12 @@
   .titel span{font-size:12px;color:var(--leise);font-variant-numeric:tabular-nums}
   .tally{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
   .z{background:var(--flaeche);border:1px solid var(--linie);border-radius:10px;
-     padding:6px 2px;text-align:center}
+     padding:6px 2px;text-align:center;cursor:pointer;font-family:var(--b);
+     transition:border-color .12s ease,background .12s ease}
+  .z:active{transform:scale(.97)}
+  .z.an{border-color:var(--tinte);border-width:2px;padding:5px 1px;background:var(--flaeche2)}
+  .z.an.a{border-color:var(--akzent)} .z.an.w{border-color:var(--warte)}
+  .z.an.j{border-color:var(--ja)} .z.an.n{border-color:var(--nein)}
   .z b{display:block;font-family:var(--d);font-size:20px;font-weight:700;line-height:1;
        font-variant-numeric:tabular-nums}
   .z i{display:block;font-style:normal;font-size:9px;letter-spacing:.03em;
@@ -68,6 +73,8 @@
                  font:600 12px var(--b);color:var(--leise);cursor:pointer;white-space:nowrap}
   .filter button.an{background:var(--tinte);color:var(--flaeche)}
   .filter button .n{font-variant-numeric:tabular-nums;opacity:.75}
+  .erklaerung{margin:8px 2px 0;font-size:12.5px;color:var(--leise);line-height:1.35}
+  .erklaerung b{color:var(--tinte);font-weight:600}
 
   .jetzt{position:relative;background:var(--flaeche);border-radius:14px;box-shadow:var(--schatten);
          margin-top:13px;padding:16px;border:1px solid var(--linie)}
@@ -207,12 +214,12 @@ const ELBE=[[50.9631,13.91667],[50.96118,13.90957],[50.96188,13.8978],[50.96515,
 <div class="huelle">
   <header class="kopf">
     <div class="titel"><h1>Die Runde</h1><span id="fortschritt">—</span></div>
-    <div class="tally">
-      <div class="z"><b id="z1">0</b><i>offen</i></div>
-      <div class="z a"><b id="z2">0</b><i>läuft</i></div>
-      <div class="z w"><b id="z3">0</b><i>Wiedervorl.</i></div>
-      <div class="z j"><b id="z4">0</b><i>zugesagt</i></div>
-      <div class="z n"><b id="z5">0</b><i>Nein</i></div>
+    <div class="tally" id="tally">
+      <button class="z" type="button" data-f="offen"><b id="z1">0</b><i>offen</i></button>
+      <button class="z a" type="button" data-f="arbeit"><b id="z2">0</b><i>läuft</i></button>
+      <button class="z w" type="button" data-f="warten"><b id="z3">0</b><i>Wiedervorl.</i></button>
+      <button class="z j" type="button" data-f="zugesagt"><b id="z4">0</b><i>zugesagt</i></button>
+      <button class="z n" type="button" data-f="abgelehnt"><b id="z5">0</b><i>Nein</i></button>
     </div>
     <div class="leiste">
       <button class="ich" type="button" id="btnIch"><span class="kugel" id="kugel">K</span><span id="ichName">Kevin</span></button>
@@ -224,6 +231,7 @@ const ELBE=[[50.9631,13.91667],[50.96118,13.90957],[50.96188,13.8978],[50.96515,
       <button type="button" data-f="gemerkt">Gemerkt <span class="n" id="nGemerkt"></span></button>
       <button type="button" data-f="meine">Meine</button>
     </div>
+    <p class="erklaerung" id="erklaerung"></p>
   </header>
   <main id="buehne"></main>
   <button id="btnExport" type="button" class="knopf" style="margin-top:22px">Stand kopieren und weitergeben</button>
@@ -389,23 +397,56 @@ const ELBE=[[50.9631,13.91667],[50.96118,13.90957],[50.96188,13.8978],[50.96515,
     return {haeuser:n, meter:m};
   }
 
+  // Was jeder Filter zeigt, in einem Satz. Steht unter der Filterzeile.
+  var ERKLAERT = {
+    alle:      ["Alle Häuser", "in Laufreihenfolge. Oben steht, wo du als Nächstes hingehst."],
+    offen:     ["Noch nicht angesprochen", "— hier warst du noch gar nicht."],
+    arbeit:    ["Gespräch begonnen", "— angefangen, aber noch nichts entschieden."],
+    warten:    ["Wiedervorlage", "— du hast einen Tag gesetzt und kommst wieder."],
+    zugesagt:  ["Zimmer zugesagt", "— du darfst filmen. Das ist deine Ausbeute."],
+    abgelehnt: ["Kein Interesse", "— abgehakt, kommt nicht wieder."],
+    faellig:   ["Heute dran", "— Wiedervorlage ist erreicht oder überfällig. Hier zuerst hin."],
+    gemerkt:   ["Gemerkt", "— mit dem Stern für später markiert, unabhängig vom Stand."],
+    meine:     ["Von dir bearbeitet", "— trägt deinen Namen. Zählt erst, wenn ihr zu zweit lauft."]
+  };
+  var LEER = {
+    offen:     "Alle Häuser sind angefasst. Ordentlich.",
+    arbeit:    "Kein Gespräch offen. Wenn du irgendwo angefangen hast, tippe dort auf „In Bearbeitung“.",
+    warten:    "Keine Wiedervorlage gesetzt. Ist der Chef nicht da, tippe auf „Wiedervorlage“ und wähl einen Tag.",
+    zugesagt:  "Noch kein Zimmer zugesagt. Das ändert sich beim ersten Ja.",
+    abgelehnt: "Noch keine Absage. Kommt schon.",
+    faellig:   "Heute ist nichts fällig. Hier tauchen Häuser von selbst auf, sobald ihr Tag erreicht ist.",
+    gemerkt:   "Nichts gemerkt. Tippe oben rechts auf den Stern, um ein Haus für später vorzumerken.",
+    meine:     "Nichts von dir bearbeitet. Sobald du irgendwo einen Stand setzt, steht dein Name dran.",
+    alle:      "Alles durch. Sag Bescheid, dann hole ich neue Häuser."
+  };
+  var ZUSTANDSFILTER = ["offen","arbeit","warten","zugesagt","abgelehnt"];
+
   function passtFilter(h){
     if (suchwort){
       var t = (h.n + " " + h.s).toLowerCase();
       if (t.indexOf(suchwort) < 0) return false;
     }
+    if (filter === "alle")     return !fertig(h.id);
     if (filter === "faellig")  return faellig(h.id);
     if (filter === "gemerkt")  return gemerkt(h.id);
     if (filter === "meine")    return werVon(h.id) === ich;
-    return true;
+    return zustand(h.id) === filter;
   }
   function liste_offen(){
     var o = [];
     for (var i=0;i<reihenfolge.length;i++){
       var h = nachId(reihenfolge[i]);
-      if (h && !fertig(h.id) && passtFilter(h)) o.push(h);
+      if (h && passtFilter(h)) o.push(h);
     }
     return o;
+  }
+  function erklaerungSetzen(){
+    var e = ERKLAERT[filter] || ERKLAERT.alle;
+    document.getElementById("erklaerung").innerHTML = "<b>" + e[0] + "</b> " + e[1];
+    document.querySelectorAll("#tally .z, #filter button").forEach(function(b){
+      b.classList.toggle("an", b.dataset.f === filter);
+    });
   }
 
   function zaehlen(){
@@ -428,6 +469,7 @@ const ELBE=[[50.9631,13.91667],[50.96118,13.90957],[50.96188,13.8978],[50.96515,
 
   function bauen(){
     zaehlen();
+    erklaerungSetzen();
     var b = document.getElementById("buehne");
     b.textContent = "";
     var offen = liste_offen();
@@ -435,9 +477,10 @@ const ELBE=[[50.9631,13.91667],[50.96118,13.90957],[50.96188,13.8978],[50.96515,
     if (!offen.length){
       var l = document.createElement("div");
       l.className = "leer";
-      l.innerHTML = filter === "alle" && !suchwort
-        ? "<b>Alles durch</b>Sag Bescheid, dann hole ich neue Häuser."
-        : "<b>Nichts gefunden</b>Anderen Filter wählen oder Suche leeren.";
+      var kopf = (ERKLAERT[filter] || ERKLAERT.alle)[0];
+      l.innerHTML = suchwort
+        ? "<b>Nichts gefunden</b>Kein Haus passt zu „" + suchwort + "“. Suche leeren."
+        : "<b>" + kopf + ": nichts drin</b>" + (LEER[filter] || "");
       b.appendChild(l);
     } else {
       if (!aktuell || !offen.some(function(x){ return x.id === aktuell; })) aktuell = offen[0].id;
@@ -532,8 +575,10 @@ const ELBE=[[50.9631,13.91667],[50.96118,13.90957],[50.96188,13.8978],[50.96515,
       if (faellige.length) zeigeListe("Heute wieder dran", faellige, b, false, true);
       if (normal.length) zeigeListe("Danach", normal, b, false, false);
     }
-    var abgehakt = HOTELS.filter(function(x){ return fertig(x.id); });
-    if (abgehakt.length && filter === "alle" && !suchwort) zeigeListe("Abgehakt", abgehakt, b, true, false);
+    if (filter === "alle" && !suchwort){
+      var abgehakt = HOTELS.filter(function(x){ return fertig(x.id); });
+      if (abgehakt.length) zeigeListe("Abgehakt", abgehakt, b, true, false);
+    }
   }
 
   function wannBlock(h){
@@ -603,12 +648,15 @@ const ELBE=[[50.9631,13.91667],[50.96118,13.90957],[50.96188,13.8978],[50.96515,
     n = n.trim(); if (!n) return;
     ich = n; localStorage.setItem(SP_ICH, ich); anzeigeIch(); bauen();
   });
-  document.getElementById("filter").addEventListener("click", function(ev){
-    var b = ev.target.closest("button"); if (!b) return;
-    filter = b.dataset.f;
-    this.querySelectorAll("button").forEach(function(x){ x.classList.toggle("an", x === b); });
+  function filterKlick(ev){
+    var b = ev.target.closest("button"); if (!b || !b.dataset.f) return;
+    // Nochmal auf denselben Filter tippen bringt zurueck zur Gesamtansicht
+    filter = (filter === b.dataset.f && b.dataset.f !== "alle") ? "alle" : b.dataset.f;
     aktuell = null; bauen();
-  });
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
+  document.getElementById("filter").addEventListener("click", filterKlick);
+  document.getElementById("tally").addEventListener("click", filterKlick);
   var su = document.getElementById("suche");
   su.addEventListener("input", function(){
     suchwort = this.value.trim().toLowerCase();
