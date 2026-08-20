@@ -1,0 +1,699 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Die Runde">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Die Runde</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --grund:#e9eef3; --flaeche:#fff; --flaeche2:#f3f6f9;
+    --tinte:#0f1a24; --leise:#5d6f80; --linie:rgba(15,26,36,.13);
+    --akzent:#c25f0c; --akzent-t:#fff;
+    --ja:#136b47; --nein:#8f3128; --warte:#1f5d86; --merk:#a8760a;
+    --schatten:0 1px 2px rgba(15,26,36,.07),0 4px 14px rgba(15,26,36,.06);
+    --d:"Barlow Condensed","Barlow",system-ui,sans-serif;
+    --b:"Barlow",system-ui,-apple-system,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --grund:#0c141c; --flaeche:#15202b; --flaeche2:#1b2733;
+      --tinte:#e7eef5; --leise:#8ba0b3; --linie:rgba(231,238,245,.14);
+      --akzent:#ef8f2e; --akzent-t:#1a1206;
+      --ja:#3bb283; --nein:#dd7266; --warte:#5aa8dd; --merk:#e0b44a;
+      --schatten:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.3);
+    }
+  }
+  :root[data-theme="dark"]{
+    --grund:#0c141c; --flaeche:#15202b; --flaeche2:#1b2733;
+    --tinte:#e7eef5; --leise:#8ba0b3; --linie:rgba(231,238,245,.14);
+    --akzent:#ef8f2e; --akzent-t:#1a1206;
+    --ja:#3bb283; --nein:#dd7266; --warte:#5aa8dd; --merk:#e0b44a;
+    --schatten:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.3);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--grund);color:var(--tinte);font-family:var(--b);
+       font-size:16px;line-height:1.45;-webkit-text-size-adjust:100%}
+  .huelle{max-width:620px;margin:0 auto;padding:0 12px 130px}
+
+  .kopf{position:sticky;top:0;z-index:30;background:var(--grund);padding:12px 0 9px;
+        border-bottom:1px solid var(--linie)}
+  .titel{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:9px}
+  .titel h1{font-family:var(--d);font-size:25px;font-weight:700;margin:0;text-transform:uppercase}
+  .titel span{font-size:12px;color:var(--leise);font-variant-numeric:tabular-nums}
+  .tally{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+  .z{background:var(--flaeche);border:1px solid var(--linie);border-radius:10px;
+     padding:6px 2px;text-align:center}
+  .z b{display:block;font-family:var(--d);font-size:20px;font-weight:700;line-height:1;
+       font-variant-numeric:tabular-nums}
+  .z i{display:block;font-style:normal;font-size:9px;letter-spacing:.03em;
+       text-transform:uppercase;color:var(--leise);margin-top:3px}
+  .z.a b{color:var(--akzent)} .z.w b{color:var(--warte)}
+  .z.j b{color:var(--ja)} .z.n b{color:var(--nein)}
+
+  .leiste{display:flex;align-items:center;gap:7px;margin-top:8px}
+  .ich{display:flex;align-items:center;gap:6px;background:var(--flaeche);border:1px solid var(--linie);
+       border-radius:99px;padding:6px 11px;font:600 13px var(--b);color:var(--tinte);cursor:pointer;flex:none}
+  .ich .kugel{width:19px;height:19px;border-radius:99px;background:var(--akzent);color:var(--akzent-t);
+              display:grid;place-items:center;font:700 11px var(--b);flex:none}
+  .suche{flex:1;min-width:0;background:var(--flaeche);border:1px solid var(--linie);border-radius:99px;
+         padding:8px 13px;font:400 14px var(--b);color:var(--tinte)}
+  .suche::placeholder{color:var(--leise)}
+  .suche:focus{outline:2px solid var(--akzent);outline-offset:1px}
+  .filter{display:flex;background:var(--flaeche);border:1px solid var(--linie);border-radius:99px;
+          padding:2px;margin-top:7px}
+  .filter button{flex:1;border:0;background:transparent;border-radius:99px;padding:7px 4px;
+                 font:600 12px var(--b);color:var(--leise);cursor:pointer;white-space:nowrap}
+  .filter button.an{background:var(--tinte);color:var(--flaeche)}
+  .filter button .n{font-variant-numeric:tabular-nums;opacity:.75}
+
+  .jetzt{position:relative;background:var(--flaeche);border-radius:14px;box-shadow:var(--schatten);
+         margin-top:13px;padding:16px;border:1px solid var(--linie)}
+  .jetzt.warten{border-left:4px solid var(--warte)}
+  .jetzt.arbeit{border-left:4px solid var(--akzent)}
+  .jetzt.zugesagt{border-left:4px solid var(--ja)}
+  .jetzt .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+                  color:var(--akzent);font-weight:600;margin-bottom:6px}
+  .jetzt h2{font-family:var(--d);font-size:30px;line-height:1.05;font-weight:700;
+            margin:0 44px 6px 0;text-wrap:balance}
+  .stern{position:absolute;top:12px;right:12px;width:38px;height:38px;border-radius:99px;
+         border:1px solid var(--linie);background:var(--flaeche2);cursor:pointer;
+         display:grid;place-items:center;padding:0}
+  .stern svg{width:19px;height:19px;fill:none;stroke:var(--leise);stroke-width:1.8}
+  .stern.an{background:color-mix(in srgb,var(--merk) 16%,transparent);border-color:var(--merk)}
+  .stern.an svg{fill:var(--merk);stroke:var(--merk)}
+  .adr{color:var(--leise);font-size:15px;margin-bottom:11px}
+  .marken{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:13px}
+  .marke{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+         padding:4px 9px;border-radius:99px;border:1px solid var(--linie);color:var(--leise)}
+  .marke.chef{border-color:color-mix(in srgb,var(--ja) 45%,transparent);color:var(--ja)}
+  .marke.ruf{border-color:color-mix(in srgb,var(--akzent) 50%,transparent);color:var(--akzent)}
+  .marke.w{border-color:var(--warte);color:var(--warte);
+           background:color-mix(in srgb,var(--warte) 12%,transparent)}
+  .marke.faellig{background:var(--warte);color:#fff;border-color:var(--warte)}
+
+  .los{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;
+       background:var(--akzent);color:var(--akzent-t);border:0;border-radius:12px;padding:17px;
+       font:700 17px var(--b);cursor:pointer;text-decoration:none;transition:transform .12s ease}
+  .los:active{transform:scale(.985)}
+  .los svg{width:19px;height:19px;fill:currentColor;flex:none}
+  .zweit{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+  .knopf{display:flex;align-items:center;justify-content:center;gap:7px;background:var(--flaeche2);
+         color:var(--tinte);border:1px solid var(--linie);border-radius:11px;padding:13px;
+         font:600 14px var(--b);cursor:pointer;text-decoration:none}
+  .knopf:active{background:var(--grund)}
+  .knopf.aus{opacity:.42;pointer-events:none}
+
+  .abfrage{margin-top:13px;padding-top:12px;border-top:1px solid var(--linie)}
+  .abfrage>p{margin:0 0 8px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--leise);font-weight:600}
+  .stand{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  .sb{display:flex;flex-direction:column;align-items:flex-start;gap:1px;border:1px solid var(--linie);
+      background:transparent;border-radius:11px;padding:11px 12px;text-align:left;
+      font:600 14px var(--b);color:var(--tinte);cursor:pointer;transition:all .12s ease}
+  .sb small{font-weight:400;font-size:11.5px;color:var(--leise);line-height:1.25}
+  .sb:active{transform:scale(.98)}
+  .sb.a{color:var(--akzent);border-color:color-mix(in srgb,var(--akzent) 42%,transparent)}
+  .sb.w{color:var(--warte);border-color:color-mix(in srgb,var(--warte) 42%,transparent)}
+  .sb.j{color:var(--ja);border-color:color-mix(in srgb,var(--ja) 42%,transparent)}
+  .sb.n{color:var(--nein);border-color:color-mix(in srgb,var(--nein) 42%,transparent)}
+  .sb.an{color:#fff}
+  .sb.an small{color:rgba(255,255,255,.8)}
+  .sb.a.an{background:var(--akzent);border-color:var(--akzent);color:var(--akzent-t)}
+  .sb.a.an small{color:color-mix(in srgb,var(--akzent-t) 75%,transparent)}
+  .sb.w.an{background:var(--warte);border-color:var(--warte)}
+  .sb.j.an{background:var(--ja);border-color:var(--ja)}
+  .sb.n.an{background:var(--nein);border-color:var(--nein)}
+
+  .wann{margin-top:9px;padding:11px;background:color-mix(in srgb,var(--warte) 9%,var(--flaeche2));
+        border:1px solid color-mix(in srgb,var(--warte) 30%,transparent);border-radius:11px}
+  .wann p{margin:0 0 8px;font-size:12px;color:var(--warte);font-weight:600}
+  .wannreihe{display:flex;flex-wrap:wrap;gap:6px}
+  .wannreihe button{border:1px solid color-mix(in srgb,var(--warte) 35%,transparent);background:var(--flaeche);
+                    color:var(--warte);border-radius:99px;padding:8px 13px;font:600 13px var(--b);cursor:pointer}
+  .wannreihe button.an{background:var(--warte);color:#fff}
+  .wannreihe input{border:1px solid color-mix(in srgb,var(--warte) 35%,transparent);background:var(--flaeche);
+                   color:var(--tinte);border-radius:99px;padding:7px 12px;font:600 13px var(--b)}
+
+  .notiz{width:100%;margin-top:9px;background:var(--flaeche2);border:1px solid var(--linie);
+         border-radius:11px;padding:11px;font:400 15px var(--b);color:var(--tinte);resize:none}
+  .notiz::placeholder{color:var(--leise)}
+  .notiz:focus{outline:2px solid var(--akzent);outline-offset:1px}
+
+  .routebox{display:flex;align-items:center;gap:12px;margin-top:12px;padding:12px 14px;
+            background:color-mix(in srgb,var(--akzent) 10%,var(--flaeche));
+            border:1px solid color-mix(in srgb,var(--akzent) 34%,transparent);border-radius:12px}
+  .routebox b{font-family:var(--d);font-size:26px;font-weight:700;line-height:1;color:var(--akzent);
+              font-variant-numeric:tabular-nums;flex:none}
+  .routebox span{font-size:13px;line-height:1.35}
+  .routebox .zu{margin-left:auto;border:0;background:transparent;color:var(--leise);
+                font:600 20px var(--b);cursor:pointer;padding:0 4px;flex:none}
+
+  .abschnitt{display:flex;align-items:center;gap:9px;margin:20px 2px 8px}
+  .abschnitt h3{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--leise);
+                margin:0;font-weight:600}
+  .abschnitt.faellig h3{color:var(--warte)}
+  .abschnitt hr{flex:1;border:0;border-top:1px solid var(--linie);margin:0}
+
+  .reihe{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--flaeche);
+         border:1px solid var(--linie);border-radius:11px;padding:10px 12px;margin-bottom:6px;
+         cursor:pointer;font-family:var(--b);color:var(--tinte);border-left-width:3px}
+  .reihe:active{border-color:var(--akzent)}
+  .reihe.s-arbeit{border-left-color:var(--akzent)}
+  .reihe.s-warten{border-left-color:var(--warte)}
+  .reihe.s-zugesagt{border-left-color:var(--ja)}
+  .reihe.s-abgelehnt{border-left-color:var(--nein)}
+  .reihe .nr{font-family:var(--d);font-size:16px;font-weight:600;color:var(--leise);
+             min-width:22px;font-variant-numeric:tabular-nums;flex:none}
+  .reihe .txt{flex:1;min-width:0}
+  .reihe .nm{display:block;font-family:var(--d);font-size:18px;font-weight:600;line-height:1.15;
+             white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .reihe .st{display:block;font-size:12.5px;color:var(--leise);line-height:1.3;
+             white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .reihe .rechts{display:flex;align-items:center;gap:6px;flex:none}
+  .reihe .km{font-size:12px;color:var(--leise);font-variant-numeric:tabular-nums}
+  .reihe .stern2{width:14px;height:14px;fill:var(--merk);flex:none}
+  .reihe.fertig{opacity:.52}
+  .reihe.fertig .nm{text-decoration:line-through;text-decoration-thickness:1px}
+  .wv{font-size:11px;font-weight:600;padding:3px 8px;border-radius:99px;flex:none;
+      background:color-mix(in srgb,var(--warte) 15%,transparent);color:var(--warte)}
+  .wv.jetzt2{background:var(--warte);color:#fff}
+  .wer{font-size:11px;font-weight:600;padding:3px 8px;border-radius:99px;flex:none;
+       background:color-mix(in srgb,var(--akzent) 16%,transparent);color:var(--akzent)}
+
+  .fuss{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--flaeche);
+        border-top:1px solid var(--linie);padding:9px 12px calc(9px + env(safe-area-inset-bottom));
+        display:flex;gap:8px}
+  .fuss button{flex:1;background:var(--flaeche2);border:1px solid var(--linie);border-radius:11px;
+               padding:12px 6px;font:600 14px var(--b);color:var(--tinte);cursor:pointer}
+  .fuss button:active{background:var(--grund)}
+  .leer{text-align:center;padding:40px 16px;color:var(--leise)}
+  .leer b{display:block;font-family:var(--d);font-size:25px;color:var(--tinte);margin-bottom:6px}
+  .quelle{margin:26px 2px 0;padding-top:14px;border-top:1px solid var(--linie);
+          font-size:11.5px;line-height:1.5;color:var(--leise)}
+  .quelle a{color:var(--leise)}
+  .hinweis{position:fixed;left:50%;bottom:76px;transform:translateX(-50%) translateY(12px);
+           background:var(--tinte);color:var(--grund);padding:11px 17px;border-radius:99px;
+           font:600 14px var(--b);opacity:0;pointer-events:none;transition:all .22s ease;z-index:50;
+           max-width:90vw;text-align:center}
+  .hinweis.an{opacity:1;transform:translateX(-50%) translateY(0)}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<script>
+const HOTELS=[{"id":"h069","n":"Hotel Burgk","s":"Burgkstraße 15","p":"01159","la":51.045994,"lo":13.697532,"t":"+49 351 432510","i":0,"g":0,"k":1},{"id":"h068","n":"Altstadtperle","s":"Gohliser Straße 17","p":"01159","la":51.046082,"lo":13.695751,"t":"+49 351 4100177","i":0,"g":0,"k":1},{"id":"h070","n":"Pension Marie","s":"Cottaer Straße 27","p":"01159","la":51.051305,"lo":13.708107,"t":"+49 351 27495700","i":1,"g":0,"k":1},{"id":"h014","n":"Artis","s":"Berliner Straße 25","p":"01067","la":51.055223,"lo":13.715003,"t":"+49 351 86450","i":0,"g":0,"k":1},{"id":"h019","n":"Gästehaus Stadt Metz","s":"Robert-Blum-Straße 9","p":"01097","la":51.062668,"lo":13.736967,"t":"+49 351 8024378","i":0,"g":0,"k":0},{"id":"h021","n":"Boutique Hotel Rothenburger Hof Dresden","s":"Rothenburger Straße 15-17","p":"01099","la":51.064355,"lo":13.752481,"t":"+49 351 89515444","i":0,"g":0,"k":0},{"id":"h024","n":"Hotel am Schwanenhaus","s":"Holzhofgasse 10","p":"01099","la":51.062327,"lo":13.760962,"t":"+49 351 56 33 50 62","i":0,"g":0,"k":0},{"id":"h015","n":"Hotel Am Terrassenufer","s":"Terrassenufer 12","p":"01069","la":51.052969,"lo":13.74939,"t":"+49 351 4409500","i":0,"g":0,"k":1},{"id":"h002","n":"Gästezimmer im Hofgärtnerhaus","s":"Brühlscher Garten 4","p":"","la":51.052093,"lo":13.745409,"t":"","i":0,"g":0,"k":1},{"id":"h016","n":"Villa de Baron","s":"Wiener Straße 44","p":"01069","la":51.036043,"lo":13.747564,"t":"+49 351 4519708","i":0,"g":0,"k":1},{"id":"h076","n":"Gästehaus „Am Weberplatz“","s":"Weberplatz 3","p":"01217","la":51.031048,"lo":13.74947,"t":"+49 351 4 67 93 00","i":0,"g":0,"k":1},{"id":"h080","n":"Pension Helth","s":"Wiener Straße 107","p":"01219","la":51.029834,"lo":13.768358,"t":"+49 351 4711214","i":1,"g":0,"k":1},{"id":"h088","n":"Pamp \"Am großen Garten\"","s":"Tetschener Straße 15","p":"01277","la":51.033786,"lo":13.778676,"t":"+49 351 2519091","i":0,"g":0,"k":1},{"id":"h090","n":"Pension am Großen Garten","s":"Beilstraße 30","p":"01277","la":51.034728,"lo":13.78235,"t":"+49 351 25474 0","i":1,"g":0,"k":1},{"id":"h089","n":"Pension Diana","s":"Liebstädter Straße 17","p":"01277","la":51.029611,"lo":13.787066,"t":"","i":1,"g":0,"k":1},{"id":"h082","n":"Mustang Inn","s":"Winterbergstraße 96","p":"01237","la":51.024358,"lo":13.795931,"t":"+49 351 212500","i":0,"g":0,"k":1},{"id":"h083","n":"Pension Haase","s":"Altreick 19","p":"01237","la":51.013159,"lo":13.795934,"t":"+49 351 2028091","i":1,"g":0,"k":1},{"id":"h081","n":"Andante Hotel","s":"Hülßestraße 1","p":"01237","la":51.012886,"lo":13.791403,"t":"+49 351 795 899 0","i":0,"g":0,"k":1},{"id":"h078","n":"Leubnitz Pension","s":"Dohnaer Straße 84","p":"01219","la":51.016396,"lo":13.770706,"t":"+49 351 4701907","i":1,"g":1,"k":1},{"id":"h004","n":"Pension Abendrot","s":"Dohnaer Straße 73b","p":"","la":51.018407,"lo":13.769758,"t":"","i":1,"g":0,"k":1},{"id":"h077","n":"Klosterhof","s":"Altleubnitz 12","p":"01219","la":51.014449,"lo":13.765821,"t":"+49351 32016500","i":0,"g":1,"k":1},{"id":"h079","n":"Leubnitzer Höhe","s":"Altleubnitz 32","p":"01219","la":51.011864,"lo":13.76644,"t":"+49 351 4706573","i":0,"g":0,"k":1},{"id":"h091","n":"Pension am Vogelnest","s":"Ludwig-Hartmann-Straße 41","p":"01277","la":51.038304,"lo":13.80931,"t":"+49 351 3100900","i":1,"g":0,"k":1},{"id":"h092","n":"Pension zur Krone","s":"Heinrich-Schütz-Straße 11","p":"01277","la":51.045587,"lo":13.81112,"t":"+49 351 3100438","i":1,"g":0,"k":1},{"id":"h003","n":"La Campagnola Boutique Hotel","s":"Friedrich-Wieck-Straße 45","p":"","la":51.053222,"lo":13.812748,"t":"+49 351 64829010","i":0,"g":0,"k":0},{"id":"h096","n":"Hotel Andreas","s":"Prellerstraße 18","p":"01309","la":51.053244,"lo":13.798781,"t":"","i":0,"g":0,"k":1},{"id":"h097","n":"Pension Blüher","s":"Alemannenstraße 24","p":"01309","la":51.049791,"lo":13.789017,"t":"+49 351 3360766","i":1,"g":0,"k":1},{"id":"h098","n":"Pension Eiselt","s":"Teutoburgstraße 6","p":"01309","la":51.0524,"lo":13.785308,"t":"","i":1,"g":0,"k":1},{"id":"h022","n":"Hotel Schloss Eckberg","s":"Bautzner Straße 134","p":"01099","la":51.063673,"lo":13.799478,"t":"+49 351 8099 0","i":0,"g":0,"k":0},{"id":"h026","n":"Pension an den Schlössern","s":"Bautzner Straße 191","p":"01099","la":51.06729,"lo":13.788515,"t":"","i":1,"g":0,"k":0},{"id":"h023","n":"Hotel Villa Loschwitz","s":"Bautzner Straße 179","p":"01099","la":51.067129,"lo":13.786549,"t":"","i":0,"g":0,"k":0},{"id":"h025","n":"Pension Angelika","s":"Angelikastraße 2","p":"01099","la":51.067266,"lo":13.782943,"t":"","i":1,"g":0,"k":0},{"id":"h017","n":"Altes Waschhaus Dresden","s":"Dammweg 24","p":"01097","la":51.074899,"lo":13.751784,"t":"+49 351 8048731","i":0,"g":0,"k":0},{"id":"h018","n":"Dammschlößchen Dresden","s":"Dammweg 22","p":"01097","la":51.073988,"lo":13.751173,"t":"+49 351 3237779","i":0,"g":0,"k":0},{"id":"h020","n":"Hotel-Pension „Mezzaluna“","s":"Fichtenstraße 8 HH","p":"01097","la":51.075376,"lo":13.747639,"t":"+49 351 4277630","i":1,"g":0,"k":0},{"id":"h044","n":"Pension Füg","s":"Weinböhlaer Straße 18","p":"01127","la":51.080684,"lo":13.73318,"t":"+49 351 849 52 13","i":1,"g":0,"k":0},{"id":"h051","n":"Pension Edith „Am Birkenhain“","s":"Barbarastraße 76","p":"01129","la":51.085013,"lo":13.721427,"t":"+49 351 412196","i":1,"g":0,"k":0},{"id":"h049","n":"Hotel Amadeus","s":"Großenhainer Straße 118","p":"01129","la":51.085454,"lo":13.727309,"t":"+49 351 8418 0","i":0,"g":0,"k":0},{"id":"h043","n":"Novalis Hotel","s":"Bärnsdorfer Straße 185","p":"01127","la":51.085919,"lo":13.738424,"t":"+49 351 82130","i":0,"g":0,"k":0},{"id":"h045","n":"Pension Hansa","s":"Maxim-Gorki-Straße 1","p":"01127","la":51.087274,"lo":13.737034,"t":"+49 351 2799116","i":1,"g":0,"k":0},{"id":"h048","n":"CC-Pension","s":"Radeburger Straße 14","p":"01129","la":51.091862,"lo":13.73781,"t":"+49 351 4727995","i":1,"g":0,"k":0},{"id":"h052","n":"Pension Wieczorek","s":"Reichenberger Straße 8","p":"01129","la":51.093237,"lo":13.718735,"t":"+49 351 6531236","i":1,"g":0,"k":0},{"id":"h047","n":"Bergwirtschaft Wilder Mann","s":"Großenhainer Straße 243","p":"01129","la":51.098024,"lo":13.716219,"t":"+49 351 2054540","i":0,"g":0,"k":0},{"id":"h050","n":"Pension Dresden-Trachau","s":"Schützenhofstraße 104","p":"01129","la":51.093471,"lo":13.701906,"t":"","i":1,"g":0,"k":0},{"id":"h041","n":"Hotel Pension zu Dresden Altpieschen","s":"Altpieschen 5b","p":"01127","la":51.078797,"lo":13.717219,"t":"+49 351 8435070","i":1,"g":0,"k":0},{"id":"h042","n":"My-Bed-Dresden","s":"Rehefelder Straße 19","p":"01127","la":51.07846,"lo":13.719542,"t":"+49 351 4798690","i":0,"g":0,"k":0},{"id":"h046","n":"Pension Pieschen Dresden","s":"Torgauer Straße 36","p":"01127","la":51.077938,"lo":13.723856,"t":"+49 351 4798233","i":1,"g":0,"k":0},{"id":"h053","n":"Elbhotel Dresden by AURUM","s":"Werftstraße 1","p":"01139","la":51.069267,"lo":13.697281,"t":"","i":0,"g":0,"k":0},{"id":"h061","n":"Pension Altcotta","s":"Ockerwitzer Straße 21","p":"01157","la":51.058851,"lo":13.680295,"t":"+49 351 4387117","i":1,"g":1,"k":1},{"id":"h066","n":"Taste Hotel Dresden","s":"Mobschatzer Straße 29","p":"01157","la":51.059404,"lo":13.67925,"t":"","i":0,"g":0,"k":1},{"id":"h062","n":"Pension Dresden Cotta","s":"Gottfried-Keller-Straße 43","p":"01157","la":51.057231,"lo":13.678434,"t":"+49 351 4221444","i":1,"g":1,"k":1},{"id":"h064","n":"Pension Leutewitz","s":"Wilhelm-Müller-Straße 1","p":"01157","la":51.059961,"lo":13.669212,"t":"+49 351 4212034","i":1,"g":1,"k":1},{"id":"h063","n":"Pension Jarosch","s":"Wilhelm-Müller-Straße 3","p":"01157","la":51.060175,"lo":13.668986,"t":"","i":1,"g":0,"k":1},{"id":"h060","n":"Altes Gewölbe","s":"Altleutewitz 6","p":"01157","la":51.058578,"lo":13.668749,"t":"+49 351 422 27 19","i":0,"g":1,"k":1},{"id":"h005","n":"Pension Dresden-Omsewitz","s":"Gompitzer Straße 24","p":"","la":51.054199,"lo":13.666682,"t":"","i":1,"g":1,"k":1},{"id":"h006","n":"Pension Großmann","s":"Uthmannstraße 79","p":"","la":51.039055,"lo":13.660414,"t":"","i":1,"g":0,"k":1},{"id":"h059","n":"Pension Luft","s":"Kesselsdorfer Straße 312","p":"01156","la":51.040137,"lo":13.644472,"t":"","i":1,"g":0,"k":1},{"id":"h010","n":"Pension „Dreiseitenhof“","s":"Altroßthal 4","p":"","la":51.033462,"lo":13.677332,"t":"+49 351 4116886","i":1,"g":0,"k":1},{"id":"h071","n":"Pension Rose","s":"Saalhausener Straße 62","p":"01159","la":51.036886,"lo":13.679001,"t":"+49 351 21998488","i":1,"g":0,"k":1},{"id":"h072","n":"Pension25","s":"Oskar-Mai-Straße 25","p":"01159","la":51.036889,"lo":13.682257,"t":"+49 351 7925445","i":1,"g":0,"k":1},{"id":"h073","n":"Pension an der Weißeritz","s":"Hofmühlenstraße 14-18","p":"01187","la":51.034973,"lo":13.705245,"t":"+49 351 4287407","i":1,"g":0,"k":1},{"id":"h074","n":"Gasthof Coschütz","s":"Kleinnaundorfer Straße 1","p":"01189","la":51.017585,"lo":13.696004,"t":"+49 351 4010358","i":1,"g":0,"k":1},{"id":"h075","n":"Hotel Heidenschanze","s":"Heidenschanze 8","p":"01189","la":51.018922,"lo":13.68601,"t":"+49 3 51 4 01 11 72","i":0,"g":0,"k":1},{"id":"h065","n":"Pension Villa Reiche","s":"Meißner Landstraße 77","p":"01157","la":51.070071,"lo":13.671431,"t":"+49 351 4222555","i":1,"g":0,"k":1},{"id":"h067","n":"Zur Post","s":"Meißner Landstraße 125","p":"01157","la":51.078469,"lo":13.660977,"t":"+49 351 4520040","i":0,"g":0,"k":1},{"id":"h057","n":"Landhaus Hempel","s":"Altmobschatz 17","p":"01156","la":51.075641,"lo":13.644128,"t":"+49 351 4520129","i":1,"g":0,"k":1},{"id":"h058","n":"Landhotel Merbitzer Hof","s":"Merbitzer Ring 11","p":"01156","la":51.0672,"lo":13.640275,"t":"+49 351 4538787","i":0,"g":0,"k":1},{"id":"h056","n":"Dreiseithof","s":"Hauptstraße 9","p":"01156","la":51.086719,"lo":13.629634,"t":"+49 351 3234580","i":0,"g":0,"k":1},{"id":"h001","n":"Feriendomizil Dresden","s":"Cossebauder Straße 13","p":"","la":51.090157,"lo":13.634474,"t":"+49 351 4 52 04 85","i":0,"g":0,"k":1},{"id":"h055","n":"Bio-Bauernhof Ines Franz","s":"Dorfstraße 12","p":"01156","la":51.094631,"lo":13.642736,"t":"","i":0,"g":0,"k":1},{"id":"h054","n":"Good Stay","s":"Kötzschenbroder Straße 185","p":"01139","la":51.091362,"lo":13.673222,"t":"+4915901460845","i":0,"g":0,"k":0},{"id":"h038","n":"Pension am Berg","s":"Berggasse 9","p":"01109","la":51.113473,"lo":13.712435,"t":"+49 351884860","i":1,"g":0,"k":0},{"id":"h040","n":"Sonnenhof","s":"Am Weinberg 45","p":"01109","la":51.111378,"lo":13.718959,"t":"","i":0,"g":0,"k":0},{"id":"h032","n":"Hotel Alter Weinberg","s":"Leeraue 59","p":"01109","la":51.111255,"lo":13.721641,"t":"+49 351 8845410","i":0,"g":0,"k":0},{"id":"h031","n":"Garden Cottage Dresden","s":"Hellerstraße 61","p":"01109","la":51.111373,"lo":13.736232,"t":"+49 351 89220","i":0,"g":0,"k":0},{"id":"h035","n":"Motel Pension Brunnen","s":"Brunnenweg 20","p":"01109","la":51.113218,"lo":13.74398,"t":"+49 351 8808256","i":1,"g":0,"k":0},{"id":"h033","n":"Hotel Fliegerhorst","s":"Moritzburger Weg 24","p":"01109","la":51.113231,"lo":13.74909,"t":"+49 351 8808256","i":0,"g":0,"k":0},{"id":"h036","n":"Pension Hellerau","s":"Heideweg 18","p":"01109","la":51.110056,"lo":13.755053,"t":"+49 351 885130","i":1,"g":0,"k":0},{"id":"h039","n":"Schmiedeschänke Gaststätte & Pension","s":"Boltenhagener Straße 110","p":"01109","la":51.117689,"lo":13.759609,"t":"+49 351 8802380","i":1,"g":0,"k":0},{"id":"h034","n":"Hotel Kaden","s":"Königsbrücker Landstraße 31","p":"01109","la":51.11134,"lo":13.777098,"t":"","i":0,"g":0,"k":0},{"id":"h030","n":"Akademiehotel Dresden","s":"Königsbrücker Landstraße 2a","p":"01109","la":51.106157,"lo":13.77817,"t":"+49 30 13001-29500","i":0,"g":0,"k":0},{"id":"h011","n":"Point Hotel","s":"Königsbrücker Landstraße 71","p":"","la":51.11481,"lo":13.784147,"t":"","i":0,"g":0,"k":0},{"id":"h027","n":"Fuchsbergklause","s":"Am Seifzerbach 59","p":"01108","la":51.133523,"lo":13.789488,"t":"+49 351 888880","i":0,"g":0,"k":0},{"id":"h029","n":"Zur Henkerin","s":"Altweixdorf 26","p":"01108","la":51.147536,"lo":13.796629,"t":"+49 351 8901096","i":0,"g":0,"k":0},{"id":"h028","n":"Maritta","s":"Alte Moritzburger Straße 61a","p":"01108","la":51.152069,"lo":13.788685,"t":"+49 351 8881492","i":0,"g":0,"k":0},{"id":"h013","n":"Waldbadhaus/Feiermanufaktur","s":"Großteichdamm 1","p":"","la":51.142925,"lo":13.80896,"t":"+49 1791180891","i":0,"g":0,"k":0},{"id":"h037","n":"Pension Rähnitz","s":"Bauernweg 34","p":"01109","la":51.119527,"lo":13.736214,"t":"","i":1,"g":0,"k":0},{"id":"h012","n":"Villa Emma","s":"Stechgrundstraße 2","p":"","la":51.064368,"lo":13.821717,"t":"+49 351 26 48 10","i":0,"g":0,"k":0},{"id":"h100","n":"Hotel-Pension \"Zu den Linden\"","s":"Plattleite 62","p":"01324","la":51.062997,"lo":13.820441,"t":"","i":1,"g":1,"k":0},{"id":"h102","n":"Pension Pamp","s":"Stangestraße 8","p":"01324","la":51.061588,"lo":13.821034,"t":"","i":1,"g":0,"k":0},{"id":"h099","n":"Hotel Appartement-Villa Ulenburg","s":"Oskar-Pletsch-Straße 9","p":"01324","la":51.060251,"lo":13.821828,"t":"+49 351 26327809","i":0,"g":1,"k":0},{"id":"h103","n":"Villa Herzog","s":"Kurparkstraße 6a","p":"01324","la":51.062681,"lo":13.827561,"t":"+49 351 26327812","i":0,"g":1,"k":0},{"id":"h101","n":"Pension Arcarde","s":"Bautzner Landstraße 58","p":"01324","la":51.061892,"lo":13.829489,"t":"+49 351 26995 0","i":1,"g":1,"k":0},{"id":"h104","n":"Elbterrasse Wachwitz","s":"Altwachwitz 14","p":"01326","la":51.036877,"lo":13.832279,"t":"+49 351 269610","i":0,"g":0,"k":0},{"id":"h095","n":"Hotel Alttolkewitzer Hof","s":"Alttolkewitz 7","p":"01279","la":51.031929,"lo":13.830359,"t":"+49 351 2510431","i":0,"g":0,"k":1},{"id":"h093","n":"Gutshof Hauber","s":"Wehlener Straße 62","p":"01279","la":51.033575,"lo":13.823166,"t":"+49 351 254660","i":0,"g":0,"k":1},{"id":"h007","n":"Pension Lindenhof","s":"Theodorstraße 2","p":"","la":51.031004,"lo":13.818879,"t":"+49 351 28718730","i":1,"g":0,"k":1},{"id":"h094","n":"Hofzwanzig","s":"Fährstraße 20","p":"01279","la":51.024337,"lo":13.839882,"t":"+49 172 3835272","i":0,"g":0,"k":1},{"id":"h105","n":"Pension Zur Königlichen Ausspanne","s":"Eugen-Dieterich-Straße 5","p":"01326","la":51.028495,"lo":13.849312,"t":"+49 351 2689502","i":1,"g":0,"k":0},{"id":"h086","n":"Ehlers","s":"Peter-Schmoll-Straße 7","p":"01259","la":51.009362,"lo":13.856082,"t":"+49 351 2013159","i":0,"g":0,"k":1},{"id":"h085","n":"An der Pillnitzer Schlossfähre","s":"Hosterwitzer Straße 22","p":"01259","la":51.008319,"lo":13.854114,"t":"+493512107850","i":0,"g":0,"k":1},{"id":"h009","n":"Pension am Weinberg","s":"Orangeriestraße 6","p":"","la":51.01233,"lo":13.872019,"t":"+493512610542","i":1,"g":0,"k":0},{"id":"h008","n":"Pension Reinicke","s":"Orangeriestraße 3","p":"","la":51.012216,"lo":13.872275,"t":"+493512610476","i":1,"g":0,"k":0},{"id":"h087","n":"Haus Kolombo","s":"Meusegaster Straße 23","p":"01259","la":50.995362,"lo":13.829623,"t":"+4935120723371","i":0,"g":0,"k":1},{"id":"h084","n":"Landhaus Lockwitzgrund","s":"Lockwitzgrund 100","p":"01257","la":50.97812,"lo":13.793611,"t":"+49 351 2710010","i":1,"g":0,"k":1}];
+const ELBE=[[50.9631,13.91667],[50.96118,13.90957],[50.96188,13.8978],[50.96515,13.88977],[50.98184,13.8848],[50.9841,13.88451],[50.97812,13.88395],[50.97131,13.88293],[50.97535,13.88245],[50.98907,13.88191],[50.99622,13.87715],[51.00072,13.87502],[51.00632,13.8719],[51.00956,13.86517],[51.01214,13.85802],[51.0145,13.8529],[51.01908,13.84628],[51.0237,13.84194],[51.02709,13.84054],[51.03167,13.83913],[51.03437,13.83584],[51.03626,13.83017],[51.03948,13.82241],[51.04194,13.81915],[51.04875,13.81431],[51.05343,13.81021],[51.05844,13.80649],[51.0613,13.8012],[51.0627,13.79631],[51.06399,13.78635],[51.06391,13.77687],[51.06239,13.76588],[51.05954,13.75902],[51.05543,13.7504],[51.05438,13.74709],[51.05406,13.7435],[51.05521,13.73858],[51.05759,13.73444],[51.06137,13.73188],[51.06447,13.7301],[51.06638,13.72855],[51.07123,13.72201],[51.07357,13.71988],[51.07641,13.71643],[51.0767,13.71057],[51.07532,13.70583],[51.07245,13.70136],[51.0683,13.7003],[51.06561,13.69802],[51.06457,13.69321],[51.06423,13.6899],[51.06389,13.68369],[51.06457,13.68083],[51.06793,13.67581],[51.0715,13.67359],[51.07535,13.67224],[51.08124,13.66885],[51.08603,13.66592],[51.08916,13.66299],[51.09323,13.6521],[51.09495,13.64793],[51.09751,13.64065],[51.09861,13.63426],[51.10188,13.62576],[51.10283,13.62113],[51.1016,13.61424],[51.09986,13.61111],[51.09756,13.6082],[51.09633,13.60518],[51.09636,13.60307],[51.09698,13.60071],[51.10044,13.59629],[51.10451,13.5923],[51.1065,13.58889],[51.10837,13.58253],[51.1095,13.57732],[51.1117,13.57351],[51.11502,13.56685],[51.1172,13.56008],[51.11897,13.55666],[51.11998,13.5518],[51.12125,13.54451],[51.12353,13.53857],[51.12688,13.53347],[51.1287,13.53169]];</script>
+
+<div class="huelle">
+  <header class="kopf">
+    <div class="titel"><h1>Die Runde</h1><span id="fortschritt">—</span></div>
+    <div class="tally">
+      <div class="z"><b id="z1">0</b><i>offen</i></div>
+      <div class="z a"><b id="z2">0</b><i>läuft</i></div>
+      <div class="z w"><b id="z3">0</b><i>Wiedervorl.</i></div>
+      <div class="z j"><b id="z4">0</b><i>zugesagt</i></div>
+      <div class="z n"><b id="z5">0</b><i>Nein</i></div>
+    </div>
+    <div class="leiste">
+      <button class="ich" type="button" id="btnIch"><span class="kugel" id="kugel">K</span><span id="ichName">Kevin</span></button>
+      <input class="suche" id="suche" type="search" placeholder="Haus oder Straße suchen" autocomplete="off">
+    </div>
+    <div class="filter" id="filter">
+      <button type="button" data-f="alle" class="an">Alle</button>
+      <button type="button" data-f="faellig">Fällig <span class="n" id="nFaellig"></span></button>
+      <button type="button" data-f="gemerkt">Gemerkt <span class="n" id="nGemerkt"></span></button>
+      <button type="button" data-f="meine">Meine</button>
+    </div>
+  </header>
+  <main id="buehne"></main>
+  <button id="btnExport" type="button" class="knopf" style="margin-top:22px">Stand kopieren und weitergeben</button>
+  <p class="quelle">
+    Hoteldaten aus <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>,
+    abgefragt am 20. August 2026, Lizenz ODbL. Ketten und Häuser ab vier Sternen sind bewusst
+    nicht enthalten. Angaben können veralten — im Zweifel vorher anrufen.
+  </p>
+</div>
+
+<nav class="fuss">
+  <button id="btnGps" type="button">Ab meinem Standort</button>
+  <button id="btnHier" type="button">Ab diesem Haus</button>
+</nav>
+<div class="hinweis" id="hinweis"></div>
+
+<script>
+(function(){
+  "use strict";
+  var SP = "runde.dresden.v2", SP_ICH = "runde.dresden.ich";
+  var stand = {};
+  try { stand = JSON.parse(localStorage.getItem(SP) || "null") || altUebernehmen(); }
+  catch(e){ stand = {}; }
+  var ich = localStorage.getItem(SP_ICH) || "Kevin";
+  var filter = "alle", suchwort = "";
+  var reihenfolge = HOTELS.map(function(h){ return h.id; });
+  var aktuell = null, strecken = {}, routeInfo = null;
+
+  // Wer die alte Fassung benutzt hat, verliert seinen Stand nicht.
+  function altUebernehmen(){
+    try {
+      var alt = JSON.parse(localStorage.getItem("runde.dresden.v1") || "{}");
+      var neu = {};
+      for (var k in alt){
+        var a = alt[k];
+        neu[k] = {s: a.s === "besucht" ? "arbeit" : (a.s || "offen"), n: a.n || "", w: a.w || ""};
+      }
+      // Sofort im neuen Format sichern, sonst haengt die Uebernahme
+      // bei jedem Start neu am alten Schluessel.
+      if (Object.keys(neu).length) localStorage.setItem(SP, JSON.stringify(neu));
+      return neu;
+    } catch(e){ return {}; }
+  }
+
+  var ZUSTAENDE = {
+    offen:     {kurz:"offen",        farbe:""},
+    arbeit:    {kurz:"läuft",        farbe:"a"},
+    warten:    {kurz:"Wiedervorlage",farbe:"w"},
+    zugesagt:  {kurz:"Zimmer zugesagt", farbe:"j"},
+    abgelehnt: {kurz:"abgelehnt",    farbe:"n"}
+  };
+
+  function sichern(){ try{ localStorage.setItem(SP, JSON.stringify(stand)); }catch(e){} }
+  function e(id){ return stand[id] || {}; }
+  function zustand(id){ return e(id).s || "offen"; }
+  function notizVon(id){ return e(id).n || ""; }
+  function werVon(id){ return e(id).w || ""; }
+  function wvVon(id){ return e(id).wv || ""; }
+  function gemerkt(id){ return !!e(id).m; }
+  function fertig(id){ var z = zustand(id); return z === "zugesagt" || z === "abgelehnt"; }
+  function heute(){ var d = new Date(); return d.toISOString().slice(0,10); }
+  function faellig(id){ var w = wvVon(id); return w && w <= heute(); }
+
+  function setzen(id, s){
+    if(!stand[id]) stand[id] = {};
+    stand[id].s = s;
+    if (s !== "offen") stand[id].w = ich; else { delete stand[id].w; delete stand[id].wv; }
+    if (s !== "warten") delete stand[id].wv;
+    sichern();
+  }
+  function merken(id){
+    if(!stand[id]) stand[id] = {};
+    stand[id].m = !stand[id].m; sichern();
+    return stand[id].m;
+  }
+  function wvSetzen(id, datum){
+    if(!stand[id]) stand[id] = {};
+    stand[id].wv = datum; stand[id].s = "warten"; stand[id].w = ich; sichern();
+  }
+  function inTagen(n){
+    var d = new Date(); d.setDate(d.getDate()+n);
+    return d.toISOString().slice(0,10);
+  }
+  function datumText(iso){
+    if (!iso) return "";
+    var d = new Date(iso + "T12:00:00"), h = new Date(heute() + "T12:00:00");
+    var tage = Math.round((d-h)/86400000);
+    if (tage < 0) return "überfällig";
+    if (tage === 0) return "heute";
+    if (tage === 1) return "morgen";
+    if (tage < 7) return "in " + tage + " Tagen";
+    return d.toLocaleDateString("de-DE", {day:"2-digit", month:"2-digit"});
+  }
+
+  function sagen(t){
+    var h = document.getElementById("hinweis");
+    h.textContent = t; h.classList.add("an");
+    clearTimeout(h._t); h._t = setTimeout(function(){ h.classList.remove("an"); }, 2200);
+  }
+  function meter(a,b){
+    var R=6371000, t=Math.PI/180, p1=a.la*t, p2=b.la*t, dp=p2-p1, dl=(b.lo-a.lo)*t;
+    var x=Math.sin(dp/2)*Math.sin(dp/2)+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)*Math.sin(dl/2);
+    return 2*R*Math.asin(Math.sqrt(x));
+  }
+  function weg(m){ return m>=1000 ? (m/1000).toFixed(1).replace(".",",")+" km" : Math.round(m)+" m"; }
+  function nachId(id){ for(var i=0;i<HOTELS.length;i++) if(HOTELS[i].id===id) return HOTELS[i]; return null; }
+  function karteLink(h){ return "https://www.google.com/maps/dir/?api=1&destination="+h.la+","+h.lo+"&travelmode=walking"; }
+
+  function elbseite(la, lo){
+    var bd=Infinity, best=null;
+    for (var i=0;i<ELBE.length-1;i++){
+      var ay=ELBE[i][0], ax=ELBE[i][1], by=ELBE[i+1][0], bx=ELBE[i+1][1];
+      var dx=bx-ax, dy=by-ay;
+      var t=(dx===0&&dy===0)?0:Math.max(0,Math.min(1,((lo-ax)*dx+(la-ay)*dy)/(dx*dx+dy*dy)));
+      var cx=ax+t*dx, cy=ay+t*dy, d=(lo-cx)*(lo-cx)+(la-cy)*(la-cy);
+      if(d<bd){ bd=d; best=[ax,ay,bx,by]; }
+    }
+    return ((best[2]-best[0])*(la-best[1]) - (best[3]-best[1])*(lo-best[0])) > 0 ? 1 : 0;
+  }
+  var BRUECKE = 1500;
+  function wegKosten(a,b){
+    var sa = a.k!==undefined ? a.k : elbseite(a.la,a.lo);
+    var sb = b.k!==undefined ? b.k : elbseite(b.la,b.lo);
+    return meter(a,b) + (sa===sb ? 0 : BRUECKE);
+  }
+  function routeRechnen(haeuser, von){
+    var rest=haeuser.slice(), pfad=[], akt=von;
+    while(rest.length){
+      var b=0;
+      for(var i=1;i<rest.length;i++) if(wegKosten(akt,rest[i])<wegKosten(akt,rest[b])) b=i;
+      akt=rest[b]; pfad.push(rest[b]); rest.splice(b,1);
+    }
+    var runden=0, besser=true;
+    while(besser && runden<80){
+      besser=false; runden++;
+      for(var i=0;i<pfad.length-1;i++) for(var k=i+1;k<pfad.length;k++){
+        var vor=i===0?von:pfad[i-1], erst=pfad[i], letzt=pfad[k];
+        var nach=(k+1<pfad.length)?pfad[k+1]:null;
+        var alt=wegKosten(vor,erst)+(nach?wegKosten(letzt,nach):0);
+        var neu=wegKosten(vor,letzt)+(nach?wegKosten(erst,nach):0);
+        if(neu<alt-0.5){
+          var teil=pfad.slice(i,k+1).reverse();
+          Array.prototype.splice.apply(pfad,[i,k-i+1].concat(teil));
+          besser=true;
+        }
+      }
+    }
+    return pfad;
+  }
+  function streckenSetzen(pfad, von){
+    strecken={}; var vor=von, g=0;
+    for(var i=0;i<pfad.length;i++){ var d=meter(vor,pfad[i]); strecken[pfad[i].id]=d; g+=d; vor=pfad[i]; }
+    return g;
+  }
+  function tagesreichweite(pfad, von){
+    var min=0, vor=von, n=0, m=0;
+    for(var i=0;i<pfad.length;i++){
+      var d=meter(vor,pfad[i]);
+      min += (d>1500 ? 8+d/1000/20*60 : d/75) + 15;
+      if(min>360) break;
+      m+=d; n++; vor=pfad[i];
+    }
+    return {haeuser:n, meter:m};
+  }
+
+  function passtFilter(h){
+    if (suchwort){
+      var t = (h.n + " " + h.s).toLowerCase();
+      if (t.indexOf(suchwort) < 0) return false;
+    }
+    if (filter === "faellig")  return faellig(h.id);
+    if (filter === "gemerkt")  return gemerkt(h.id);
+    if (filter === "meine")    return werVon(h.id) === ich;
+    return true;
+  }
+  function liste_offen(){
+    var o = [];
+    for (var i=0;i<reihenfolge.length;i++){
+      var h = nachId(reihenfolge[i]);
+      if (h && !fertig(h.id) && passtFilter(h)) o.push(h);
+    }
+    return o;
+  }
+
+  function zaehlen(){
+    var c = {offen:0, arbeit:0, warten:0, zugesagt:0, abgelehnt:0};
+    for (var i=0;i<HOTELS.length;i++) c[zustand(HOTELS[i].id)]++;
+    document.getElementById("z1").textContent = c.offen;
+    document.getElementById("z2").textContent = c.arbeit;
+    document.getElementById("z3").textContent = c.warten;
+    document.getElementById("z4").textContent = c.zugesagt;
+    document.getElementById("z5").textContent = c.abgelehnt;
+    document.getElementById("fortschritt").textContent =
+      (c.zugesagt + c.abgelehnt) + " von " + HOTELS.length + " durch";
+    var nf = HOTELS.filter(function(h){ return faellig(h.id); }).length;
+    var ng = HOTELS.filter(function(h){ return gemerkt(h.id); }).length;
+    document.getElementById("nFaellig").textContent = nf ? nf : "";
+    document.getElementById("nGemerkt").textContent = ng ? ng : "";
+  }
+
+  var STERN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8-5.3-2.8-5.3 2.8 1-5.8L3.5 9.7l5.9-.9z"/></svg>';
+
+  function bauen(){
+    zaehlen();
+    var b = document.getElementById("buehne");
+    b.textContent = "";
+    var offen = liste_offen();
+
+    if (!offen.length){
+      var l = document.createElement("div");
+      l.className = "leer";
+      l.innerHTML = filter === "alle" && !suchwort
+        ? "<b>Alles durch</b>Sag Bescheid, dann hole ich neue Häuser."
+        : "<b>Nichts gefunden</b>Anderen Filter wählen oder Suche leeren.";
+      b.appendChild(l);
+    } else {
+      if (!aktuell || !offen.some(function(x){ return x.id === aktuell; })) aktuell = offen[0].id;
+      var h = nachId(aktuell), idx = offen.indexOf(h), z = zustand(h.id);
+
+      var k = document.createElement("section");
+      k.className = "jetzt" + (z !== "offen" ? " " + z : "");
+      var marken = '<span class="marke">Nr. ' + (idx+1) + " von " + offen.length + "</span>";
+      var dvor = strecken[h.id];
+      if (dvor !== undefined && dvor < 1) marken += '<span class="marke">Startpunkt</span>';
+      else if (dvor !== undefined) marken += '<span class="marke">' + weg(dvor) + "</span>";
+      else if (idx > 0) marken += '<span class="marke">' + weg(meter(offen[idx-1], h)) + " vom vorigen</span>";
+      if (wvVon(h.id)) marken += '<span class="marke w' + (faellig(h.id) ? " faellig" : "") + '">' +
+        (faellig(h.id) ? "Heute dran" : "Wieder " + datumText(wvVon(h.id))) + "</span>";
+      if (z === "arbeit") marken += '<span class="marke w" style="border-color:var(--akzent);color:var(--akzent)">' +
+        (werVon(h.id) === ich ? "Du bist dran" : werVon(h.id) + " ist dran") + "</span>";
+      if (idx > 0 && offen[idx-1].k !== h.k) marken += '<span class="marke ruf">Elbseite wechseln</span>';
+      if (h.i) marken += '<span class="marke chef">Chef meist da</span>';
+      if (!h.g) marken += '<span class="marke ruf">vorher anrufen</span>';
+
+      k.innerHTML =
+        '<button class="stern' + (gemerkt(h.id) ? " an" : "") + '" type="button" id="btnStern" aria-label="Merken">' + STERN + "</button>" +
+        '<div class="eyebrow">' + (faellig(h.id) ? "Heute wieder dran" : "Als Nächstes") + "</div>" +
+        "<h2>" + h.n + "</h2>" +
+        '<div class="adr">' + h.s + (h.p ? ", " + h.p + " Dresden" : "") + "</div>" +
+        '<div class="marken">' + marken + "</div>" +
+        '<a class="los" href="' + karteLink(h) + '" target="_blank" rel="noopener">' +
+          '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>' +
+          "Navigation starten</a>" +
+        '<div class="zweit">' +
+          (h.t ? '<a class="knopf" href="tel:' + h.t.replace(/\s/g,"") + '">Anrufen</a>'
+               : '<span class="knopf aus">Keine Nummer</span>') +
+          '<button class="knopf" type="button" id="btnSkip">Überspringen</button>' +
+        "</div>" +
+        '<div class="abfrage"><p>Wie ist es gelaufen?</p><div class="stand">' +
+          '<button class="sb a' + (z==="arbeit"?" an":"") + '" type="button" data-s="arbeit">In Bearbeitung<small>Gespräch läuft, noch offen</small></button>' +
+          '<button class="sb w' + (z==="warten"?" an":"") + '" type="button" data-s="warten">Wiedervorlage<small>Chef weg, Bedenkzeit</small></button>' +
+          '<button class="sb j' + (z==="zugesagt"?" an":"") + '" type="button" data-s="zugesagt">Zimmer zugesagt<small>Du darfst filmen</small></button>' +
+          '<button class="sb n' + (z==="abgelehnt"?" an":"") + '" type="button" data-s="abgelehnt">Kein Interesse<small>Abgehakt</small></button>' +
+        "</div>" +
+        (z === "warten" ? wannBlock(h) : "") +
+        '<textarea class="notiz" id="notiz" rows="2" placeholder="Was wurde gesagt? Name des Chefs?"></textarea>' +
+        "</div>";
+      b.appendChild(k);
+
+      k.querySelector("#notiz").value = notizVon(h.id);
+      k.querySelector("#notiz").addEventListener("input", function(){
+        if(!stand[h.id]) stand[h.id] = {};
+        stand[h.id].n = this.value; sichern();
+      });
+      k.querySelector("#btnStern").addEventListener("click", function(){
+        var an = merken(h.id);
+        sagen(an ? h.n + " gemerkt" : "Merken entfernt");
+        bauen();
+      });
+      k.querySelector("#btnSkip").addEventListener("click", function(){
+        var o = liste_offen(), i = o.indexOf(nachId(aktuell));
+        aktuell = o[(i+1) % o.length].id; bauen();
+        window.scrollTo({top:0, behavior:"smooth"});
+      });
+      k.querySelectorAll(".sb").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          var neu = this.dataset.s;
+          if (neu === zustand(h.id)){ setzen(h.id, "offen"); sagen("Zurückgesetzt"); bauen(); return; }
+          if (neu === "warten"){
+            wvSetzen(h.id, inTagen(2));
+            sagen("Wiedervorlage gesetzt — Tag unten wählen");
+            bauen(); return;
+          }
+          setzen(h.id, neu);
+          sagen(h.n + " — " + ZUSTAENDE[neu].kurz);
+          if (neu === "zugesagt" || neu === "abgelehnt") aktuell = null;
+          bauen(); window.scrollTo({top:0, behavior:"smooth"});
+        });
+      });
+      if (z === "warten") wannVerdrahten(k, h);
+
+      if (routeInfo){
+        var rb = document.createElement("div");
+        rb.className = "routebox";
+        rb.innerHTML = "<b>" + routeInfo.tag.haeuser + "</b><span><strong>Häuser an einem Tag</strong>" +
+          (routeInfo.von ? " ab " + routeInfo.von : "") + "<br>auf " + weg(routeInfo.tag.meter) +
+          " Laufweg. Alle " + routeInfo.anzahl + ": " + weg(routeInfo.gesamt) + "</span>" +
+          '<button class="zu" type="button" aria-label="Ausblenden">×</button>';
+        rb.querySelector(".zu").addEventListener("click", function(){ routeInfo = null; bauen(); });
+        b.appendChild(rb);
+      }
+
+      var rest = offen.slice(idx+1).concat(offen.slice(0, idx));
+      var faellige = rest.filter(function(x){ return faellig(x.id); });
+      var normal = rest.filter(function(x){ return !faellig(x.id); });
+      if (faellige.length) zeigeListe("Heute wieder dran", faellige, b, false, true);
+      if (normal.length) zeigeListe("Danach", normal, b, false, false);
+    }
+    var abgehakt = HOTELS.filter(function(x){ return fertig(x.id); });
+    if (abgehakt.length && filter === "alle" && !suchwort) zeigeListe("Abgehakt", abgehakt, b, true, false);
+  }
+
+  function wannBlock(h){
+    var w = wvVon(h.id);
+    var opt = [["morgen",1],["in 3 Tagen",3],["nächste Woche",7],["in 2 Wochen",14]];
+    var kn = opt.map(function(o){
+      return '<button type="button" data-t="' + o[1] + '"' +
+             (w === inTagen(o[1]) ? ' class="an"' : "") + ">" + o[0] + "</button>";
+    }).join("");
+    return '<div class="wann"><p>Wann gehst du wieder hin?</p><div class="wannreihe">' + kn +
+           '<input type="date" id="wvDatum" value="' + (w || "") + '"></div></div>';
+  }
+  function wannVerdrahten(k, h){
+    k.querySelectorAll(".wannreihe button").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        wvSetzen(h.id, inTagen(parseInt(this.dataset.t, 10)));
+        sagen("Wieder dran " + datumText(wvVon(h.id)));
+        bauen();
+      });
+    });
+    var dat = k.querySelector("#wvDatum");
+    if (dat) dat.addEventListener("change", function(){
+      if (!this.value) return;
+      wvSetzen(h.id, this.value);
+      sagen("Wieder dran " + datumText(this.value));
+      bauen();
+    });
+  }
+
+  function zeigeListe(titel, arr, buehne, istFertig, istFaellig){
+    var a = document.createElement("div");
+    a.className = "abschnitt" + (istFaellig ? " faellig" : "");
+    a.innerHTML = "<h3>" + titel + " (" + arr.length + ")</h3><hr>";
+    buehne.appendChild(a);
+    arr.forEach(function(h, i){
+      var z = zustand(h.id);
+      var r = document.createElement("button");
+      r.type = "button";
+      r.className = "reihe s-" + z + (istFertig ? " fertig" : "");
+      var rechts = "";
+      if (gemerkt(h.id)) rechts += '<svg class="stern2" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8-5.3-2.8-5.3 2.8 1-5.8L3.5 9.7l5.9-.9z"/></svg>';
+      if (wvVon(h.id)) rechts += '<span class="wv' + (faellig(h.id) ? " jetzt2" : "") + '">' + datumText(wvVon(h.id)) + "</span>";
+      else if (z === "arbeit" && werVon(h.id)) rechts += '<span class="wer">' + werVon(h.id) + "</span>";
+      else if (!istFertig && strecken[h.id] !== undefined) rechts += '<span class="km">' + weg(strecken[h.id]) + "</span>";
+      else if (!istFertig && h.i) rechts += '<span class="km">Chef</span>';
+      var unten = h.s + (notizVon(h.id) ? " · " + notizVon(h.id) : "");
+      r.innerHTML = (istFertig ? "" : '<span class="nr">' + (i+1) + "</span>") +
+        '<span class="txt"><span class="nm">' + h.n + '</span><span class="st">' + unten + "</span></span>" +
+        '<span class="rechts">' + rechts + "</span>";
+      r.addEventListener("click", function(){
+        aktuell = h.id;
+        if (istFertig) setzen(h.id, "offen");
+        bauen(); window.scrollTo({top:0, behavior:"smooth"});
+      });
+      buehne.appendChild(r);
+    });
+  }
+
+  function anzeigeIch(){
+    document.getElementById("ichName").textContent = ich;
+    document.getElementById("kugel").textContent = (ich[0] || "?").toUpperCase();
+  }
+
+  document.getElementById("btnIch").addEventListener("click", function(){
+    var n = prompt("Wer läuft gerade? Der Name steht an jedem Haus, das du bearbeitest.", ich);
+    if (n === null) return;
+    n = n.trim(); if (!n) return;
+    ich = n; localStorage.setItem(SP_ICH, ich); anzeigeIch(); bauen();
+  });
+  document.getElementById("filter").addEventListener("click", function(ev){
+    var b = ev.target.closest("button"); if (!b) return;
+    filter = b.dataset.f;
+    this.querySelectorAll("button").forEach(function(x){ x.classList.toggle("an", x === b); });
+    aktuell = null; bauen();
+  });
+  var su = document.getElementById("suche");
+  su.addEventListener("input", function(){
+    suchwort = this.value.trim().toLowerCase();
+    aktuell = null; bauen();
+  });
+
+  function routeAnwenden(pfad, von, wieHeisst, alleOffen){
+    var gesamt = streckenSetzen(pfad, von);
+    var tag = tagesreichweite(pfad, von);
+    var uebrig = HOTELS.filter(function(x){ return pfad.indexOf(x) < 0; }).map(function(x){ return x.id; });
+    reihenfolge = pfad.map(function(x){ return x.id; }).concat(uebrig);
+    aktuell = pfad.length ? pfad[0].id : null;
+    routeInfo = {gesamt: gesamt, tag: tag, anzahl: pfad.length, von: wieHeisst};
+    sagen(tag.haeuser + " Häuser an einem Tag ab " + wieHeisst);
+    bauen(); window.scrollTo({top:0, behavior:"smooth"});
+  }
+
+  document.getElementById("btnHier").addEventListener("click", function(){
+    var h = nachId(aktuell) || liste_offen()[0];
+    if (!h){ sagen("Nichts offen"); return; }
+    var rest = liste_offen().filter(function(x){ return x.id !== h.id; });
+    var pfad = [h].concat(routeRechnen(rest, h));
+    routeAnwenden(pfad, h, h.n);
+    strecken[h.id] = 0;
+    bauen();
+  });
+
+  document.getElementById("btnGps").addEventListener("click", function(){
+    var b = this;
+    if (!navigator.geolocation){ sagen("Standort geht hier nicht — nimm „Ab diesem Haus“"); return; }
+    b.textContent = "Suche Standort…";
+    navigator.geolocation.getCurrentPosition(function(pos){
+      var mir = {la: pos.coords.latitude, lo: pos.coords.longitude};
+      mir.k = elbseite(mir.la, mir.lo);
+      b.textContent = "Rechne…";
+      setTimeout(function(){
+        var offen = liste_offen();
+        if (!offen.length){ b.textContent = "Ab meinem Standort"; sagen("Nichts offen"); return; }
+        routeAnwenden(routeRechnen(offen, mir), mir, "deinem Standort");
+        b.textContent = "Ab meinem Standort";
+      }, 30);
+    }, function(f){
+      b.textContent = "Ab meinem Standort";
+      sagen(f.code === 1 ? "Standort gesperrt — nimm „Ab diesem Haus“"
+                         : "Standort nicht gefunden — nimm „Ab diesem Haus“");
+    }, {enableHighAccuracy:true, timeout:12000});
+  });
+
+  document.getElementById("btnExport").addEventListener("click", function(){
+    var z = ["Stand der Runde Dresden — " + new Date().toLocaleDateString("de-DE"), ""];
+    ["zugesagt","warten","arbeit","abgelehnt"].forEach(function(s){
+      var g = HOTELS.filter(function(h){ return zustand(h.id) === s; });
+      if (!g.length) return;
+      z.push(ZUSTAENDE[s].kurz.toUpperCase() + " (" + g.length + ")");
+      g.forEach(function(h){
+        z.push("  " + h.id + "  " + h.n +
+          (wvVon(h.id) ? "  [wieder " + wvVon(h.id) + "]" : "") +
+          (werVon(h.id) ? "  [" + werVon(h.id) + "]" : "") +
+          (gemerkt(h.id) ? "  [gemerkt]" : "") +
+          (notizVon(h.id) ? "  — " + notizVon(h.id) : ""));
+      });
+      z.push("");
+    });
+    var gm = HOTELS.filter(function(h){ return gemerkt(h.id) && zustand(h.id) === "offen"; });
+    if (gm.length){
+      z.push("GEMERKT, noch nicht angesprochen (" + gm.length + ")");
+      gm.forEach(function(h){ z.push("  " + h.id + "  " + h.n); });
+      z.push("");
+    }
+    z.push("offen: " + HOTELS.filter(function(h){ return zustand(h.id)==="offen"; }).length +
+           " von " + HOTELS.length);
+    var text = z.join("\n");
+    if (navigator.clipboard && navigator.clipboard.writeText)
+      navigator.clipboard.writeText(text).then(function(){ sagen("Stand kopiert — schick ihn mir"); },
+                                               function(){ sagen("Kopieren ging nicht"); });
+    else sagen("Kopieren ging nicht");
+  });
+
+  // Ist heute etwas fällig? Dann direkt dort anfangen.
+  var heuteFaellig = HOTELS.filter(function(h){ return faellig(h.id); });
+  if (heuteFaellig.length){
+    aktuell = heuteFaellig[0].id;
+    setTimeout(function(){ sagen(heuteFaellig.length + " Haus/Häuser heute wieder dran"); }, 500);
+  }
+  anzeigeIch();
+  bauen();
+})();
+</script>
