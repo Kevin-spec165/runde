@@ -148,11 +148,12 @@ html[lang="de"] [data-de],html[lang="en"] [data-en]{display:revert}
 /* Zwei Ueberschriften, eine sichtbar. Am Telefon traegt eine lange Zeile nicht:
    sie wird fuenfzeilig und schiebt sich auf den Knopf. */
 html[lang] .titel h1 .kurz{display:none}
-@media (max-width:640px){
+@media (max-width:640px),(max-height:540px){
   html[lang="de"] .titel h1 span.lang,html[lang="en"] .titel h1 span.lang{display:none}
   html[lang="de"] .titel h1 span.kurz[data-de]{display:block}
   html[lang="en"] .titel h1 span.kurz[data-en]{display:block}
 }
+
 .titel .unter{
   margin-top:20px;max-width:44ch;font-size:clamp(14px,1.5vw,17px);line-height:1.55;
   color:var(--tinte-leise);
@@ -462,6 +463,22 @@ html[lang] .titel h1 .kurz{display:none}
   .film .zeile{bottom:clamp(78px,14vh,120px)}
   .film .zeile p{max-width:20ch}
 }
+
+/* Flacher Schirm: Telefon quer, oder ein sehr niedriges Fenster. Hier ist
+   Hoehe das knappe Gut, nicht Breite. Der Untertext geht, der Titel wird
+   kleiner, der Knopf rueckt hoch. */
+@media (max-height:540px){
+  .buehne{min-height:0}
+  .titel{bottom:clamp(14px,4vh,26px);width:min(60%,560px)}
+  .titel h1{font-size:clamp(24px,4.4vh,38px);line-height:1.04}
+  .titel .vor{margin-bottom:9px;font-size:9.5px}
+  .titel .unter{display:none}
+  .knopf{width:clamp(74px,17vh,104px);height:clamp(74px,17vh,104px);top:44%}
+  .knopf .wort{bottom:-25px;font-size:9px}
+  .hinab{display:none}
+  .satz{padding:clamp(52px,14vh,110px) var(--rand)}
+}
+
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
