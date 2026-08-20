@@ -3,7 +3,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Lisa — Zimmerrundgang</title>
-<meta name="theme-color" content="#0a0b0d">
+<meta name="description" content="Ein geführter Rundgang durch ein Zimmer. 58 Sekunden, sieben Fragen beantwortet, bevor gebucht wird.">
+<meta property="og:title" content="Lisa — Zimmerrundgang">
+<meta property="og:description" content="58 Sekunden, und Sie wissen, worauf Sie sich einlassen.">
+<meta property="og:image" content="bild/poster.jpg">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#08090b">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2308090b'/%3E%3Cpath d='M11 9v14h10' stroke='%23e8c8a0' stroke-width='2.4' fill='none' stroke-linecap='square'/%3E%3C/svg%3E">
 
 <style>
 /* ===========================================================================
@@ -77,14 +84,14 @@ html[lang="de"] [data-de],html[lang="en"] [data-en]{display:revert}
 }
 .wahl button{
   font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;
-  padding:8px 12px;color:var(--tinte-leise);
+  padding:11px 14px;min-height:40px;color:var(--tinte-leise);
   transition:color .28s var(--weich),background .28s var(--weich);
 }
 .wahl button[aria-pressed="true"]{color:var(--grund);background:var(--tinte)}
 .wahl button:not([aria-pressed="true"]):hover{color:var(--tinte)}
 
 .ton{
-  width:38px;height:34px;display:grid;place-items:center;
+  width:42px;height:40px;display:grid;place-items:center;
   border:1px solid var(--haar-hell);border-radius:999px;
   backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);
   background:rgba(10,12,15,.42);
@@ -562,7 +569,7 @@ html[lang="de"] [data-de],html[lang="en"] [data-en]{display:revert}
 
 <!-- ===================================================================== Film -->
 <div class="film" id="film" role="dialog" aria-modal="true" aria-label="Rundgang">
-  <video id="kino" src="tour.mp4" playsinline muted preload="auto"></video>
+  <video id="kino" src="tour.mp4" playsinline muted preload="auto" poster="bild/poster.jpg"></video>
   <div class="dunkel"></div>
   <button class="halt" id="halt" aria-label="Pause"></button>
   <button class="zu" id="zu" aria-label="Schließen">
@@ -761,6 +768,20 @@ var gesagt = [], laeuft = false;
 
 function tonPfad(i){ return "ton/" + sprache + "/" + (i+1) + ".m4a"; }
 
+/* Alle Abschnitte im Voraus holen. Zusammen 700 KB - das faellt neben
+   66 MB Video nicht ins Gewicht, verhindert aber, dass Lisas erster Satz
+   eine Sekunde zu spaet einsetzt. */
+var vorrat = {};
+function ladeStimmen(spr){
+  if(vorrat[spr]) return;
+  vorrat[spr] = KAPITEL.map(function(_, i){
+    var a = new Audio(); a.preload = "auto";
+    a.src = "ton/" + spr + "/" + (i+1) + ".m4a";
+    return a;
+  });
+}
+ladeStimmen("de");
+
 function sprich(i){
   if(stumm) return;
   try{ stimme.pause(); }catch(e){}
@@ -849,9 +870,18 @@ $("zu").addEventListener("click", schliesse);
 
 /* Auf das Bild tippen haelt an und laeuft weiter — Bild und Stimme zusammen. */
 $("halt").addEventListener("click", function(){
-  if(kino.paused){ kino.play(); if(!stumm) stimme.play().catch(function(){}); }
-  else { kino.pause(); try{ stimme.pause(); }catch(e){} }
+  if(kino.paused){
+    kino.play();
+    if(!stumm && stimme.src && stimme.currentTime < stimme.duration)
+      stimme.play().catch(function(){});
+  } else {
+    kino.pause();
+    try{ stimme.pause(); }catch(e){}
+  }
 });
+/* Laeuft das Bild aus irgendeinem Grund weiter, waehrend die Stimme haengt,
+   zieht das Bild die Stimme nach. Bild ist die Uhr, nicht der Ton. */
+kino.addEventListener("pause", function(){ try{ stimme.pause(); }catch(e){} });
 
 document.addEventListener("keydown", function(e){
   if(e.key === "Escape" && film.classList.contains("an")) schliesse();
@@ -874,7 +904,9 @@ function setzeSprache(neu){
   }
 }
 $("bDe").addEventListener("click", function(){ setzeSprache("de"); });
-$("bEn").addEventListener("click", function(){ setzeSprache("en"); });
+$("bEn").addEventListener("click", function(){ ladeStimmen("en"); setzeSprache("en"); });
+/* Sobald die Maus die englische Seite auch nur beruehrt, wird geladen. */
+$("bEn").addEventListener("pointerenter", function(){ ladeStimmen("en"); });
 
 /* ===================================================================== Ton */
 $("bTon").addEventListener("click", function(){
@@ -883,7 +915,14 @@ $("bTon").addEventListener("click", function(){
   this.setAttribute("aria-label", stumm
     ? (sprache === "de" ? "Ton an" : "Sound on")
     : (sprache === "de" ? "Ton aus" : "Sound off"));
-  if(stumm){ try{ stimme.pause(); }catch(e){} }
+  if(stumm){ try{ stimme.pause(); stimme.currentTime = 0; }catch(e){} }
+  else if(laeuft){
+    /* Wieder an: den Satz des laufenden Kapitels von vorn, sonst
+       herrscht bis zum naechsten Kapitel Stille. */
+    var t = kino.currentTime, i = -1;
+    for(var n = 0; n < KAPITEL.length; n++) if(t >= KAPITEL[n].bei) i = n;
+    if(i >= 0) sprich(i);
+  }
 });
 
 /* ------------------------------------------------- Kopfzeile beim Scrollen
