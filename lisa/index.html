@@ -275,7 +275,7 @@ html[lang] .titel h1 .kurz{display:none}
 
 .spalte{padding:0 var(--rand)}
 .kap{
-  min-height:100svh;display:flex;flex-direction:column;justify-content:center;
+  min-height:88svh;display:flex;flex-direction:column;justify-content:center;
   padding:clamp(60px,10vh,120px) 0;
   border-bottom:1px solid var(--haar);
 }
@@ -936,6 +936,10 @@ function oeffne(){
   film.removeAttribute("aria-hidden");
   starrMachen(true);
   document.body.style.overflow = "hidden";
+  /* Sofort, nicht im naechsten Einzelbild: die Sichtbarkeit schaltet ohne
+     Animation, also nimmt der Film den Fokus schon jetzt an. Einzelbild-
+     Rueckrufe laufen in einem versteckten Reiter gar nicht. */
+  $("zu").focus();
   vorschau.pause();
   try{ kino.currentTime = 0; }catch(e){}
   laedtEl.classList.toggle("da", kino.readyState < 3);
@@ -953,11 +957,6 @@ function oeffne(){
   if(kino.readyState >= 3) los();
   else kino.addEventListener("canplay", los, { once:true });
 
-  /* Erst wenn der Film wirklich sichtbar ist, nimmt er den Fokus an.
-     Vorher steht er auf "versteckt" und der Fokus bleibt dahinter haengen. */
-  requestAnimationFrame(function(){
-    requestAnimationFrame(function(){ $("zu").focus(); });
-  });
 }
 
 function schliesse(){
