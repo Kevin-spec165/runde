@@ -580,7 +580,7 @@ html:not(.js) .saeule img:first-child{opacity:1;transform:none}
 <!-- ================================================================== Buehne -->
 <section class="buehne" id="buehne">
   <img class="platzhalter" src="bild/poster.jpg" alt="" aria-hidden="true">
-  <video id="vorschau" src="tour.mp4" muted playsinline loop preload="auto" aria-hidden="true"></video>
+  <video id="vorschau" muted playsinline loop preload="auto" aria-hidden="true"></video>
   <div class="schleier"></div>
   <div class="korn" aria-hidden="true"></div>
 
@@ -595,7 +595,7 @@ html:not(.js) .saeule img:first-child{opacity:1;transform:none}
   </button>
 
   <div class="titel">
-    <div class="vor steig"><span data-de>Zimmer 1 · Geführter Rundgang</span><span data-en>Room 1 · Guided tour</span></div>
+    <div class="vor steig" id="vorzeile"></div>
     <h1 class="steig">
       <span class="lang" data-de>Achtundfünfzig Sekunden, und Sie <em>wissen</em>, worauf Sie sich einlassen.</span>
       <span class="lang" data-en>Fifty-eight seconds, and you <em>know</em> what you're booking.</span>
@@ -685,9 +685,11 @@ html:not(.js) .saeule img:first-child{opacity:1;transform:none}
 </div>
 
 <!-- ===================================================================== Film -->
+<script src="zimmer.js"></script>
+
 <div class="film" id="film" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Rundgang">
   <canvas class="filmbg" id="filmbg" aria-hidden="true"></canvas>
-  <video id="kino" src="tour.mp4" playsinline muted preload="auto" poster="bild/poster.jpg"></video>
+  <video id="kino" playsinline muted preload="auto" poster="bild/poster.jpg"></video>
   <div class="dunkel"></div>
   <button class="halt" id="halt" aria-label="Pause"></button>
   <button class="zu" id="zu" aria-label="Schließen">
@@ -719,67 +721,32 @@ html:not(.js) .saeule img:first-child{opacity:1;transform:none}
    dem naechsten, und die beiden schnellen Schwenks (Sekunde 27-30 und
    37-40) bleiben absichtlich still.
    ====================================================================== */
-var KAPITEL = [
-  { bei: 1.2,  bild:"k1", beleg:"geprueft", zeit:"0:01",
-    titel:{de:"Die Tür",        en:"The doorway"},
-    lisa: {de:"Sie stehen in der Tür. Und das Erste, was Sie sehen, ist nicht der Fernseher. Sondern Licht.",
-           en:"You're standing in the doorway. And the first thing you see isn't the television. It's light."},
-    frage:{de:"Sieht es aus wie auf den Fotos?",  en:"Does it look like the photos?"},
-    warum:{de:"Die Frage hinter jeder Buchung. Ein Rundgang zeigt auch das, was eine Fotogalerie weglässt — genau das ist sein Wert.",
-           en:"The question behind every booking. A walkthrough also shows what a photo gallery leaves out — that is exactly its value."} },
-
-  { bei: 10.0, bild:"k2", beleg:"geprueft", zeit:"0:10",
-    titel:{de:"Das Bett",       en:"The bed"},
-    lisa: {de:"Das Kopfende steht an der Wand, nicht unter dem Fenster. Klingt nebensächlich. Ist der Unterschied zwischen durchschlafen und um vier wach sein.",
-           en:"The headboard is against the wall, not under the window. Sounds minor. It's the difference between sleeping through the night, and waking at four."},
-    frage:{de:"Schlafe ich hier durch?",  en:"Will I sleep through the night?"},
-    warum:{de:"Die teuerste Frage im ganzen Haus. Wer sie vorher beantwortet, nimmt dem Gast das Risiko ab.",
-           en:"The most expensive question in the building. Answer it up front and the risk is gone."} },
-
-  { bei: 21.8, bild:"k3", beleg:"geprueft", zeit:"0:22",
-    titel:{de:"Der Sessel",     en:"The armchair"},
-    lisa: {de:"Und ein Sessel. Kein Hocker, kein Alibi. Ohne ihn landet man abends auf dem Bett.",
-           en:"And an armchair. Not a stool, not a gesture. Without it, you end up on the bed."},
-    frage:{de:"Wo sitze ich, außer auf dem Bett?", en:"Where do I sit, other than the bed?"},
-    warum:{de:"Steht auf keiner Buchungsseite und entscheidet trotzdem, ob ein Zimmer als eng empfunden wird.",
-           en:"Never listed on a booking site, and still it decides whether a room feels cramped."} },
-
-  { bei: 29.8, bild:"k4", beleg:"geprueft", zeit:"0:30",
-    titel:{de:"Der Schreibtisch", en:"The desk"},
-    lisa: {de:"Eine durchgehende Platte, ein Stuhl mit Rollen. Hier geht ein ganzer Vormittag.",
-           en:"One continuous surface, a chair on castors. A whole morning works here."},
-    frage:{de:"Kann ich hier arbeiten?", en:"Can I actually work here?"},
-    warum:{de:"Entscheidet über Geschäftsreisende — und über die Buchung von Sonntag auf Montag.",
-           en:"Decides the business traveller — and the Sunday-to-Monday booking."} },
-
-  { bei: 40.2, bild:"k5", beleg:"geprueft", zeit:"0:40",
-    titel:{de:"Die Ablage",     en:"The surfaces"},
-    lisa: {de:"Nichts davon müssen Sie benutzen. Es steht da, damit der Raum bewohnt aussieht.",
-           en:"None of this is for you to use. It's here so the room looks lived in."},
-    frage:{de:"Bewohnt oder steril?", en:"Lived in, or sterile?"},
-    warum:{de:"Der einzige Satz im Rundgang, der nichts verkauft. Deshalb glaubt man den anderen sechs.",
-           en:"The one line in the tour that sells nothing. Which is why the other six are believed."} },
-
-  { bei: 47.0, bild:"k6", beleg:"platzhalter", zeit:"0:47",
-    titel:{de:"Das Fenster",    en:"The window"},
-    lisa: {de:"Der Blick geht nach hinten. Keine Straßenbahn. Kein Lieferwagen um sechs.",
-           en:"The view faces the back. No tram. No delivery van at six."},
-    frage:{de:"Wie laut ist es nachts?", en:"How loud is it at night?"},
-    warum:{de:"Die Frage, die im Buchungsportal nie steht und trotzdem jede zweite Bewertung bestimmt.",
-           en:"Never asked on a booking site, and still it drives every second review."} },
-
-  { bei: 54.0, bild:"k7", beleg:"geprueft", zeit:"0:54",
-    titel:{de:"Der Abschluss",  en:"The close"},
-    lisa: {de:"Mehr müssen Sie nicht tun, als anzukommen.",
-           en:"There's nothing left to do but arrive."},
-    frage:{de:"Und jetzt?", en:"And now?"},
-    warum:{de:"Ein Rundgang endet nicht mit einem Angebot. Er endet damit, dass nichts mehr offen ist.",
-           en:"A tour does not end with an offer. It ends with nothing left open."} }
-];
+/* Alles Zimmerspezifische steht in zimmer.js - Video, Kapitel, Texte.
+   Diese Datei hier bleibt bei jedem Zimmer gleich. */
+var ZIMMER  = window.ZIMMER || {};
+var KAPITEL = ZIMMER.kapitel || [];
 
 window.__KAPITEL = KAPITEL;
-var LAENGE = 58.76;   // gemessen, nicht geschaetzt
+var LAENGE = ZIMMER.laenge || 58.76;   // gemessen, steht in zimmer.js
 var $ = function(id){ return document.getElementById(id); };
+
+/* Video und Kopfzeile aus zimmer.js setzen, bevor irgendetwas anderes laeuft. */
+(function(){
+  var datei = ZIMMER.video || "tour.mp4";
+  $("vorschau").src = datei;
+  $("kino").src = datei;
+  if(ZIMMER.englisch === false){
+    var wahl = document.querySelector(".wahl");
+    if(wahl) wahl.style.display = "none";
+  }
+  var vor = $("vorzeile");
+  if(vor){
+    var haus = ZIMMER.haus ? ZIMMER.haus + " · " : "";
+    vor.innerHTML =
+      '<span data-de>' + haus + (ZIMMER.zimmer_de || "Geführter Rundgang") + '</span>' +
+      '<span data-en>' + haus + (ZIMMER.zimmer_en || "Guided tour") + '</span>';
+  }
+})();
 var sprache = "de";
 var stumm   = false;
 

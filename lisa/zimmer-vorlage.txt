@@ -1,0 +1,71 @@
+# ===========================================================================
+# Vorlage für eine Zimmerführung.
+#
+# So gehst du vor:
+#   1. Diese Datei kopieren, z. B. nach zimmer-sonnenhof.txt
+#   2. Oben Haus, Zimmer und Videodatei eintragen
+#   3. Für jedes Kapitel einen Block --- schreiben
+#   4. Im Ordner Probe:
+#        python3 lisa-tour-guide/tools/neues_zimmer.py lisa-web/zimmer-sonnenhof.txt
+#
+# Das Werkzeug vertont Lisas Sätze, misst jede Datei nach und sagt dir,
+# wenn ein Satz nicht in sein Zeitfenster passt. Es schreibt nichts halb.
+#
+# Zeilen mit # sind Notizen und werden übersprungen.
+# ===========================================================================
+
+HAUS:   Hotel Sonnenhof
+ZIMMER: Zimmer 12 · Geführter Rundgang
+VIDEO:  zimmer12.mp4
+
+
+# --- Ein Kapitel sieht so aus ------------------------------------------------
+#
+#   --- 0:47 · Das Fenster
+#   LISA:  Was Lisa an dieser Stelle sagt.
+#   FRAGE: Welche Buchungsfrage das beantwortet?
+#   WARUM: Warum diese Frage zählt. (kann weg)
+#   BELEG: platzhalter                (nur wenn im Bild nicht zu sehen)
+#   EN:    What Lisa says here.       (kann weg — dann kein Englisch)
+#
+# Die Zeit ist der Moment im Video, an dem Lisa anfängt zu sprechen.
+# Zwischen zwei Kapiteln müssen mindestens 0,8 Sekunden Stille bleiben,
+# am Schluss mindestens 1,2 Sekunden. Das rechnet das Werkzeug für dich aus.
+# -----------------------------------------------------------------------------
+
+
+--- 0:01 · Die Tür
+LISA:  Sie stehen in der Tür. Und das Erste, was Sie sehen, ist nicht der Fernseher. Sondern Licht.
+FRAGE: Sieht es aus wie auf den Fotos?
+WARUM: Die Frage hinter jeder Buchung. Ein Rundgang zeigt auch das, was eine Fotogalerie weglässt.
+
+--- 0:10 · Das Bett
+LISA:  Das Kopfende steht an der Wand, nicht unter dem Fenster. Klingt nebensächlich. Ist der Unterschied zwischen durchschlafen und um vier wach sein.
+FRAGE: Schlafe ich hier durch?
+WARUM: Die teuerste Frage im ganzen Haus. Wer sie vorher beantwortet, nimmt dem Gast das Risiko ab.
+
+--- 0:22 · Der Sessel
+LISA:  Und ein Sessel. Kein Hocker, kein Alibi. Ohne ihn landet man abends auf dem Bett.
+FRAGE: Wo sitze ich, außer auf dem Bett?
+WARUM: Steht auf keiner Buchungsseite und entscheidet trotzdem, ob ein Zimmer als eng empfunden wird.
+
+--- 0:30 · Der Schreibtisch
+LISA:  Eine durchgehende Platte, ein Stuhl mit Rollen. Hier geht ein ganzer Vormittag.
+FRAGE: Kann ich hier arbeiten?
+WARUM: Entscheidet über Geschäftsreisende und über die Buchung von Sonntag auf Montag.
+
+--- 0:40 · Die Ablage
+LISA:  Nichts davon müssen Sie benutzen. Es steht da, damit der Raum bewohnt aussieht.
+FRAGE: Bewohnt oder steril?
+WARUM: Der einzige Satz im Rundgang, der nichts verkauft. Deshalb glaubt man den anderen sechs.
+
+--- 0:47 · Das Fenster
+LISA:  Der Blick geht nach hinten. Keine Straßenbahn. Kein Lieferwagen um sechs.
+FRAGE: Wie laut ist es nachts?
+WARUM: Die Frage, die im Buchungsportal nie steht und trotzdem jede zweite Bewertung bestimmt.
+BELEG: platzhalter
+
+--- 0:54 · Der Abschluss
+LISA:  Mehr müssen Sie nicht tun, als anzukommen.
+FRAGE: Und jetzt?
+WARUM: Ein Rundgang endet nicht mit einem Angebot. Er endet damit, dass nichts mehr offen ist.
