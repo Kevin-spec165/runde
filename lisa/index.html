@@ -12,6 +12,7 @@
 <meta name="theme-color" content="#08090b">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2308090b'/%3E%3Cpath d='M11 9v14h10' stroke='%23e8c8a0' stroke-width='2.4' fill='none' stroke-linecap='square'/%3E%3C/svg%3E">
 
+<script>document.documentElement.className+=" js";</script>
 <style>
 /* ===========================================================================
    Lisa — Zimmerrundgang, Testfassung
@@ -257,9 +258,11 @@ html[lang] .titel h1 .kurz{display:none}
 .saeule img{
   position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
   opacity:0;transform:scale(1.08);
+  /* Ohne JavaScript traegt das erste Bild - siehe .js-Regel weiter unten. */
   transition:opacity 1.05s var(--weich),transform 2.4s var(--weich);
 }
 .saeule img.da{opacity:1;transform:scale(1)}
+html:not(.js) .saeule img:first-child{opacity:1;transform:none}
 .saeule .kante{
   position:absolute;inset:0;pointer-events:none;
   background:linear-gradient(to right,transparent 62%,rgba(8,9,11,.9) 100%),
@@ -316,9 +319,11 @@ html[lang] .titel h1 .kurz{display:none}
   display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.24em;
   text-transform:uppercase;color:var(--tinte-still);font-weight:400;margin-bottom:9px;
 }
-/* Auftritt: erst wenn das Kapitel wirklich im Bild ist. */
-.kap>*{opacity:0;transform:translateY(26px);transition:opacity .95s var(--weich),transform 1.05s var(--tief)}
-.kap.sicht>*{opacity:1;transform:none}
+/* Auftritt: erst wenn das Kapitel wirklich im Bild ist.
+   Nur bei .js - ohne JavaScript steht der Text von Anfang an da. Sonst
+   sieht ein Besucher eine leere Seite, wenn irgendetwas nicht laeuft. */
+.js .kap>*{opacity:0;transform:translateY(26px);transition:opacity .95s var(--weich),transform 1.05s var(--tief)}
+.js .kap.sicht>*{opacity:1;transform:none}
 .kap.sicht>*:nth-child(1){transition-delay:.04s}
 .kap.sicht>*:nth-child(2){transition-delay:.13s}
 .kap.sicht>*:nth-child(3){transition-delay:.22s}
@@ -331,11 +336,18 @@ html[lang] .titel h1 .kurz{display:none}
   transition:opacity .6s var(--weich);
 }
 .leiste.da{opacity:1}
+.leiste::before{
+  content:"";position:absolute;inset:-16px -13px;border-radius:999px;
+  background:radial-gradient(closest-side,rgba(6,7,9,.72),rgba(6,7,9,.28) 62%,transparent);
+  pointer-events:none;
+}
 .leiste i{
-  display:block;width:2px;height:15px;border-radius:2px;background:var(--haar-hell);
+  position:relative;
+  display:block;width:2px;height:15px;border-radius:2px;background:rgba(244,245,247,.4);
+  box-shadow:0 0 8px rgba(0,0,0,.7);
   transition:background .45s var(--weich),height .45s var(--tief);
 }
-.leiste i.jetzt{background:var(--akzent);height:26px}
+.leiste i.jetzt{background:var(--akzent);height:26px;box-shadow:0 0 12px rgba(0,0,0,.8)}
 
 /* ------------------------------------------------------------------ Abschluss */
 .ende{
@@ -459,10 +471,10 @@ html[lang] .titel h1 .kurz{display:none}
   .kapbild{
     display:block;width:100%;aspect-ratio:16/9;object-fit:cover;
     border-radius:3px;margin-bottom:26px;
-    opacity:0;transform:scale(1.03);
-    transition:opacity 1s var(--weich),transform 1.6s var(--weich);
   }
-  .kap.sicht .kapbild{opacity:1;transform:none}
+  .js .kapbild{opacity:0;transform:scale(1.03);
+    transition:opacity 1s var(--weich),transform 1.6s var(--weich)}
+  .js .kap.sicht .kapbild{opacity:1;transform:none}
   .kap .nr{margin-bottom:18px}
   .kap h2{margin-bottom:18px}
   .kap blockquote{margin-bottom:22px}
@@ -771,10 +783,22 @@ kapEl.forEach(function(el){ beobachter.observe(el); });
 
 /* Auftritt der Kapitel: eigener Beobachter, frueher als der obige, damit
    der Text schon steht, wenn er die Mitte erreicht. */
+var beobachterLief = false;
 var auftritt = new IntersectionObserver(function(es){
+  beobachterLief = true;
   es.forEach(function(e){ if(e.isIntersecting) e.target.classList.add("sicht"); });
 }, { rootMargin: "0px 0px -18% 0px", threshold: .12 });
 kapEl.forEach(function(el){ auftritt.observe(el); });
+
+/* Notbremse: hat der Beobachter nach zwei Sekunden nichts gemeldet, laeuft
+   er nicht. Dann wird alles gezeigt - lieber ohne Auftritt sichtbar als
+   mit Auftritt unsichtbar. */
+setTimeout(function(){
+  if(beobachterLief) return;
+  kapEl.forEach(function(el){ el.classList.add("sicht"); });
+  if(!bildEl.some(function(b){ return b.classList.contains("da"); }))
+    bildEl[0].classList.add("da");
+}, 2000);
 
 /* Die Leiste erscheint erst, wenn die Kapitel beginnen. */
 var leisteAn = new IntersectionObserver(function(es){
