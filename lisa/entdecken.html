@@ -335,8 +335,17 @@ video{width:100%;height:100%;object-fit:contain;display:block;
 
 .leiste{position:absolute;left:0;right:0;bottom:0;z-index:15;display:flex;gap:3px;
   padding:0 clamp(14px,2.6vw,30px) clamp(7px,1.2vw,12px)}
+.leiste{pointer-events:auto}
+/* Jeder Abschnitt der Spur ist anklickbar - der erste springt an den
+   Anfang. Die Trefferflaeche ist hoeher als der Strich, sonst muss man
+   auf zwei Bildpunkte zielen. */
 .leiste i{flex:1;height:2px;background:rgba(244,245,247,.18);border-radius:2px;
-  position:relative;overflow:hidden}
+  position:relative;overflow:visible;cursor:pointer;
+  transition:background .25s var(--weich)}
+.leiste i::before{content:"";position:absolute;left:0;right:0;top:-13px;bottom:-9px}
+.leiste i:hover{background:rgba(244,245,247,.5)}
+.leiste i > s{position:absolute;inset:0;border-radius:2px;overflow:hidden;
+  text-decoration:none;display:block}
 .leiste i::after{content:"";position:absolute;inset:0;background:var(--tinte);
   transform-origin:left;transform:scaleX(var(--p,0));transition:transform .2s linear}
 .leiste i.fertig::after{background:var(--akzent)}
@@ -535,8 +544,8 @@ video{width:100%;height:100%;object-fit:contain;display:block;
     <span data-de>Lädt</span><span data-en>Loading</span></div>
 </div>
 
-<script src="zimmer.js?v=20260821174942"></script>
-<script src="punkte.js?v=20260821174942"></script>
+<script src="zimmer.js?v=20260821175638"></script>
+<script src="punkte.js?v=20260821175638"></script>
 <script>
 (function(){
 "use strict";
@@ -564,8 +573,43 @@ $("eGesamt").textContent = ALLE.length;
 
 /* Fortschrittsleiste: ein Feld je Halt. */
 var leiste=$("leiste");
-HALTE.forEach(function(){ leiste.appendChild(document.createElement("i")); });
+HALTE.forEach(function(h, i){
+  var e = document.createElement("i");
+  e.setAttribute("role", "button");
+  e.setAttribute("tabindex", "0");
+  e.title = (i === 0 ? "Zurück zum Anfang" : "Zu: " + h.titel.de);
+  e.addEventListener("click", function(){ springeZu(i); });
+  e.addEventListener("keydown", function(ev){
+    if(ev.key === "Enter"){ ev.preventDefault(); springeZu(i); }
+  });
+  leiste.appendChild(e);
+});
 var leisteEl=[].slice.call(leiste.children);
+
+/* Springt an den Anfang eines Abschnitts. Abschnitt 0 heisst: ganz von vorn.
+   Das Licht bleibt dabei an - es gehoert zum Anfang der Tour, nicht zu
+   jedem Sprung. */
+function springeZu(i){
+  if(!laeuft) return;
+  uhrAus();
+  schliesseKarte();
+  buehne.classList.remove("haelt", "handpause");
+  $("pause").classList.remove("da");
+  $("haltname").classList.remove("da");
+  feld.innerHTML = "";
+  $("ende").classList.remove("da");
+
+  var ziel = i === 0 ? 0 : HALTE[i].bei - 0.4;
+  haltIndex = i - 1;                       /* der Halt selbst kommt gleich */
+  gesagt = [];
+  for(var j=0;j<HALTE.length;j++){
+    leisteEl[j].classList.toggle("fertig", j < i);
+    if(j >= i) leisteEl[j].style.setProperty("--p", 0);
+  }
+  try{ stimme.pause(); stimme.currentTime = 0; }catch(e){}
+  try{ kino.currentTime = Math.max(ziel, 0); }catch(e){}
+  kino.play().catch(function(){});
+}
 
 /* ------------------------------------------------------------ Ton ------ */
 function tonFreischalten(){
@@ -929,6 +973,12 @@ function starte(){
     setTimeout(function(){
       kino.play().catch(function(){});
     }, LICHTDAUER * 0.58);   /* sobald die Lampen an sind, nicht erst am Ende */
+    /* Danach ist das Licht an und bleibt an. Ohne dieses Entfernen wuerde
+       die Lichtanimation nach JEDEM Halt neu starten, weil der Halt seine
+       eigene Animation auf das Video legt und "raumAn" verdraengt. */
+    setTimeout(function(){
+      buehne.classList.remove("lichtan");
+    }, LICHTDAUER + 60);
   }
   if(kino.readyState>=3) lichtAn(); else kino.addEventListener("canplay", lichtAn, {once:true});
 }
