@@ -33,8 +33,13 @@ plan = pathlib.Path("../lisa-tour-guide/media/demo/rundgang.txt").read_text()
 aufn = len([z for z in plan.splitlines() if z.strip() and not z.startswith("#")])
 if not nennt(aufn, "Aufnahmen"):
     fehler.append(f"Seite nennt nicht {aufn} Aufnahmen ({aufn-1} Schnitte)")
-if "ohne Schnitt" in s or "continuous take" in s:
-    fehler.append("Seite behauptet weiter 'ohne Schnitt'")
+# Alle Formulierungen, die "eine einzige Aufnahme" bedeuten. Die Liste ist
+# dreimal gewachsen, weil jedes Mal eine weitere Stelle auftauchte.
+EINZUG = ["ohne Schnitt", "continuous take", "in einem Zug", "in one take",
+          "one shot", "ein Zug ", "single take", "am Stück gedreht"]
+for wendung in EINZUG:
+    if wendung in s:
+        fehler.append(f"Seite behauptet eine einzige Aufnahme: '{wendung}' — es sind {aufn}")
 
 # Kapitel
 kap = len(re.findall(r"\{ bei:", s))
