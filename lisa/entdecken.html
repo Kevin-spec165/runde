@@ -51,35 +51,87 @@ html[lang="de"] [data-de],html[lang="en"] [data-en]{display:revert}
 
 .bild{position:absolute;inset:0;z-index:1;display:grid;place-items:center}
 
-/* Das Licht im Zimmer.
-   Vor dem Start ist es aus: das Bild steht dunkel und kalt, wie ein Raum
-   ohne eingeschaltete Lampe. Auf Knopfdruck faehrt es hoch — nicht linear,
-   sondern mit der weichen Kurve eines Dimmers. Erst wenn es oben ist,
-   faengt Lisa an zu sprechen.
-   Kein Flackern: ein Hotelzimmer, dessen Licht flackert, verkauft nichts. */
-.buehne.dunkel video,
-.buehne.dunkel .rand{
-  filter:brightness(.14) saturate(.35) contrast(1.1);
+
+/* ============================================================ Das Licht ==
+   Nicht "Bild heller drehen", sondern Nacht zu Licht.
+
+   Was eine Lampe im Raum wirklich macht:
+     1. Vorher ist es draussen UND drinnen dunkel. Nachtlicht ist kalt und
+        blau, nicht einfach dunkelgrau.
+     2. Beim Einschalten springt die Helligkeit fast sofort - eine Lampe
+        dimmt nicht hoch, sie ist an.
+     3. Der Raum wird WARM. Genau dieser Farbumschlag von blau nach gelb
+        ist das, was das Auge als "Licht angemacht" liest, nicht die
+        Helligkeit allein.
+     4. Danach gleicht sich das Auge an, und die Farbe normalisiert sich.
+   ======================================================================== */
+
+/* Die Nacht: kalte blaue Schicht ueber dem Bild. */
+.nachtschicht{
+  position:absolute;inset:0;z-index:2;pointer-events:none;opacity:1;
+  background:
+    radial-gradient(120% 90% at 42% 34%, rgba(26,48,74,.42) 0%, rgba(7,14,26,.74) 62%, rgba(3,7,14,.88) 100%),
+    linear-gradient(to bottom, rgba(5,11,21,.72), rgba(2,5,11,.86));
 }
-.buehne.lichtan video{
-  animation:lichtHoch 1500ms cubic-bezier(.32,.06,.2,1) forwards;
+.buehne.dunkel video,.buehne.dunkel .rand{
+  filter:brightness(.46) saturate(.26) contrast(1.22);
 }
-.buehne.lichtan .rand{
-  animation:lichtHochRand 1700ms cubic-bezier(.32,.06,.2,1) forwards;
+
+/* Die Lampen: warme Lichtquellen, die aufpoppen. Zwei Stellen - die
+   Deckenleuchte oben mittig, die Schreibtischlampe rechts. */
+.lampen{
+  position:absolute;inset:0;z-index:3;pointer-events:none;opacity:0;
+  mix-blend-mode:screen;
+  background:
+    radial-gradient(52% 42% at 46% 8%,  rgba(255,214,148,.62) 0%, rgba(255,198,120,.22) 44%, transparent 74%),
+    radial-gradient(30% 30% at 88% 46%, rgba(255,206,140,.5)  0%, rgba(255,190,110,.18) 46%, transparent 76%),
+    radial-gradient(70% 60% at 40% 62%, rgba(255,222,170,.22) 0%, transparent 70%);
 }
-@keyframes lichtHoch{
-  0%   {filter:brightness(.14) saturate(.35) contrast(1.1)}
-  38%  {filter:brightness(.52) saturate(.72) contrast(1.06)}
-  74%  {filter:brightness(1.04) saturate(1.02) contrast(1)}
-  100% {filter:brightness(1) saturate(1) contrast(1)}
+
+/* --- Der Ablauf, zwei Sekunden ------------------------------------------
+   0    – 22 %  es bleibt dunkel. Man sieht den Nachtraum.
+   22   – 30 %  KLACK. Die Lampen sind an, fast ohne Uebergang.
+   30   – 50 %  kurzes Ueberschwingen, wie eine Gluehwendel
+   50   – 100 % Farbe normalisiert sich, das Auge gewoehnt sich.        */
+.buehne.lichtan .nachtschicht{ animation:nachtWeg 2000ms cubic-bezier(.4,0,.2,1) forwards }
+.buehne.lichtan .lampen{       animation:lampenAn 2000ms cubic-bezier(.4,0,.2,1) forwards }
+.buehne.lichtan video{         animation:raumAn   2000ms cubic-bezier(.4,0,.2,1) forwards }
+.buehne.lichtan .rand{         animation:randAn   2000ms cubic-bezier(.4,0,.2,1) forwards }
+
+@keyframes nachtWeg{
+  0%,21%  { opacity:1 }
+  27%     { opacity:.18 }
+  34%     { opacity:.26 }
+  55%     { opacity:.05 }
+  100%    { opacity:0 }
 }
-@keyframes lichtHochRand{
-  0%   {filter:blur(44px) saturate(.4) brightness(.1)}
-  100% {filter:blur(44px) saturate(1.15) brightness(.5)}
+@keyframes lampenAn{
+  0%,21%  { opacity:0 }
+  26%     { opacity:1 }
+  32%     { opacity:.78 }
+  40%     { opacity:.92 }
+  70%     { opacity:.42 }
+  100%    { opacity:.16 }
 }
-/* Solange es dunkel ist, traegt der Knopf allein - kein zusaetzlicher
-   Schleier darueber, sonst wird aus dunkel nur matschig. */
+@keyframes raumAn{
+  0%,21%  { filter:brightness(.46) saturate(.26) contrast(1.22) }
+  26%     { filter:brightness(1.16) saturate(.94) contrast(1.02) sepia(.28) }
+  33%     { filter:brightness(.92) saturate(1)    contrast(1.02) sepia(.22) }
+  45%     { filter:brightness(1.05) saturate(1.04) contrast(1)   sepia(.14) }
+  70%     { filter:brightness(1)    saturate(1.02) contrast(1)   sepia(.05) }
+  100%    { filter:brightness(1)    saturate(1)    contrast(1)   sepia(0) }
+}
+@keyframes randAn{
+  0%,21%  { filter:blur(44px) saturate(.25) brightness(.14) }
+  27%     { filter:blur(44px) saturate(.9)  brightness(.62) }
+  100%    { filter:blur(44px) saturate(1.15) brightness(.5) }
+}
+
+/* Solange es dunkel ist, traegt der Knopf allein. */
 .buehne.dunkel .start{background:none;backdrop-filter:none}
+.nachtschicht,.lampen{transition:opacity .4s var(--weich)}
+.buehne:not(.dunkel):not(.lichtan) .nachtschicht,
+.buehne:not(.dunkel):not(.lichtan) .lampen{opacity:0}
 video{width:100%;height:100%;object-fit:contain;display:block;
   transition:filter 1.4s var(--weich),transform 1.4s var(--weich)}
 
@@ -393,6 +445,8 @@ video{width:100%;height:100%;object-fit:contain;display:block;
 <div class="buehne dunkel" id="buehne">
   <canvas class="rand" id="rand" aria-hidden="true"></canvas>
   <div class="bild"><video id="kino" playsinline muted preload="auto" poster="bild/poster.jpg"></video></div>
+  <div class="nachtschicht" aria-hidden="true"></div>
+  <div class="lampen" aria-hidden="true"></div>
   <div class="korn" aria-hidden="true"></div>
   <div class="schatten" aria-hidden="true"></div>
 
@@ -481,8 +535,8 @@ video{width:100%;height:100%;object-fit:contain;display:block;
     <span data-de>Lädt</span><span data-en>Loading</span></div>
 </div>
 
-<script src="zimmer.js?v=20260821174252"></script>
-<script src="punkte.js?v=20260821174252"></script>
+<script src="zimmer.js?v=20260821174942"></script>
+<script src="punkte.js?v=20260821174942"></script>
 <script>
 (function(){
 "use strict";
@@ -857,7 +911,7 @@ $("eVerpasst").addEventListener("click", function(){
 });
 
 /* ------------------------------------------------------ Starten -------- */
-var LICHTDAUER = 1500;
+var LICHTDAUER = 2000;
 
 function starte(){
   tonFreischalten();
@@ -874,7 +928,7 @@ function starte(){
     buehne.classList.add("lichtan");
     setTimeout(function(){
       kino.play().catch(function(){});
-    }, LICHTDAUER - 250);        /* die letzten Millisekunden ueberlappen */
+    }, LICHTDAUER * 0.58);   /* sobald die Lampen an sind, nicht erst am Ende */
   }
   if(kino.readyState>=3) lichtAn(); else kino.addEventListener("canplay", lichtAn, {once:true});
 }
