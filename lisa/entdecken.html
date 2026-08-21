@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="de">
+<script>document.documentElement.className+=" js";</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Lisa — Zimmer entdecken</title>
+<meta name="theme-color" content="#08090b">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2308090b'/%3E%3Cpath d='M11 9v14h10' stroke='%23e8c8a0' stroke-width='2.4' fill='none' stroke-linecap='square'/%3E%3C/svg%3E">
+
+<style>
+/* ===========================================================================
+   entdecken.html — der Rundgang zum Anklicken.
+
+   Der Unterschied zum Film: das Bild haelt an definierten Stellen an, und
+   dort erscheinen Klickpunkte. Waehrend es steht, redet Lisa weiter — die
+   Tonspur laeuft unabhaengig. Dadurch wirkt der Halt wie eine Tafel in
+   einer Doku und nicht wie ein pausiertes Video.
+
+   Drei Regeln aus der Recherche, an die sich alles hier haelt:
+     1. Hoechstens drei Punkte je Halt. Mehr wird ignoriert.
+     2. Ein Punkt muss nach Handlung aussehen, nicht nach Verzierung.
+        Deshalb pulst er, solange er nicht angesehen wurde.
+     3. Der Klick muss sich lohnen — jede Karte sagt etwas, das man
+        vorher nicht wusste.
+   ======================================================================== */
+
+:root{
+  --tinte:#f4f5f7; --leise:#8b9099; --still:#767b85;
+  --grund:#08090b; --haar:rgba(244,245,247,.13); --haar-hell:rgba(244,245,247,.24);
+  --akzent:#e8c8a0; --gefunden:#7fb08a;
+  --sans:-apple-system,"SF Pro Text","Segoe UI",system-ui,sans-serif;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,ui-serif,serif;
+  --mono:ui-monospace,"SF Mono",Menlo,monospace;
+  --weich:cubic-bezier(.22,.61,.36,1);
+  --tief:cubic-bezier(.32,.72,0,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--grund);overflow:hidden}
+body{font-family:var(--sans);color:var(--tinte);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+[data-de],[data-en]{display:none}
+html[lang="de"] [data-de],html[lang="en"] [data-en]{display:revert}
+
+.buehne{position:relative;width:100%;height:100dvh;overflow:hidden;background:#000}
+
+/* Weichgezeichneter Auszug fuellt die Raender neben dem 16:9-Bild. */
+.rand{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;
+  transform:scale(1.25);filter:blur(44px) saturate(1.15) brightness(.5);
+  opacity:0;transition:opacity 1.2s var(--weich)}
+.rand.da{opacity:1}
+
+.bild{position:absolute;inset:0;z-index:1;display:grid;place-items:center}
+video{width:100%;height:100%;object-fit:contain;display:block;
+  transition:filter 1.4s var(--weich),transform 1.4s var(--weich)}
+
+/* Waehrend eines Halts wird aus dem Video eine Tafel: leicht entsaettigt,
+   ganz langsam wandernd. Das ist der Unterschied zwischen "angehalten"
+   und "angesehen". */
+.buehne.haelt video{filter:saturate(.86) contrast(1.07) brightness(.94);
+  animation:wandern 26s var(--weich) forwards}
+@keyframes wandern{from{transform:scale(1)}to{transform:scale(1.045)}}
+
+.korn{position:absolute;inset:-40%;z-index:2;pointer-events:none;opacity:0;
+  transition:opacity 1.2s var(--weich);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation:flimmern 900ms steps(3) infinite}
+.buehne.haelt .korn{opacity:.055}
+@keyframes flimmern{0%{transform:translate(0,0)}33%{transform:translate(-2%,1%)}66%{transform:translate(1%,-2%)}}
+
+.schatten{position:absolute;inset:0;z-index:3;pointer-events:none;
+  background:linear-gradient(to top,rgba(0,0,0,.8) 0%,rgba(0,0,0,.14) 26%,transparent 46%),
+             linear-gradient(to bottom,rgba(0,0,0,.55) 0%,transparent 22%);
+  opacity:1;transition:opacity .8s var(--weich)}
+
+/* ====================================================== Klickpunkte ===== */
+.feld{position:absolute;z-index:6;pointer-events:none;
+  /* Masse werden gerechnet, siehe feldAusrichten(). Prozentangaben der
+     Punkte beziehen sich damit auf das BILD, nicht auf das Fenster. */
+  left:0;top:0;width:100%;height:100%}
+
+.punkt{
+  position:absolute;transform:translate(-50%,-50%);pointer-events:auto;
+  width:64px;height:64px;display:grid;place-items:center;   /* 64 px Tippflaeche */
+  opacity:0;visibility:hidden;
+  transition:opacity .7s var(--weich),visibility .7s;
+}
+.buehne.haelt .punkt{opacity:1;visibility:visible}
+.buehne.haelt .punkt:nth-of-type(1){transition-delay:.35s}
+.buehne.haelt .punkt:nth-of-type(2){transition-delay:.55s}
+.buehne.haelt .punkt:nth-of-type(3){transition-delay:.75s}
+
+/* Der sichtbare Kern. Klein, damit er das Bild nicht zerstoert. */
+.punkt i{
+  position:absolute;width:13px;height:13px;border-radius:50%;
+  background:var(--akzent);
+  box-shadow:0 0 0 1.5px rgba(8,9,11,.55),0 2px 14px rgba(0,0,0,.6);
+  transition:transform .45s var(--tief),background .5s var(--weich)}
+.punkt:hover i,.punkt:focus-visible i{transform:scale(1.35)}
+
+/* Der Ring, der pulst — das ist die Aufforderung zum Klicken. Er hoert auf,
+   sobald der Punkt angesehen wurde. Ohne ihn sehen Punkte nach Deko aus,
+   und Deko klickt niemand an. */
+.punkt b{
+  position:absolute;width:13px;height:13px;border-radius:50%;
+  border:1.5px solid var(--akzent);
+  animation:klopfen 2.6s var(--weich) infinite}
+@keyframes klopfen{
+  0%{transform:scale(1);opacity:.85}
+  60%{transform:scale(3.4);opacity:0}
+  100%{transform:scale(3.4);opacity:0}}
+.punkt.gesehen b{animation:none;opacity:0}
+.punkt.gesehen i{background:var(--gefunden);transform:scale(.72)}
+.punkt.gesehen{opacity:.55}
+.punkt.gesehen:hover{opacity:1}
+
+/* Beschriftung, die beim Zeigen auftaucht. Am Telefon steht sie immer da. */
+.punkt em{
+  position:absolute;left:26px;top:50%;transform:translateY(-50%) translateX(-6px);
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--tinte);white-space:nowrap;font-style:normal;
+  padding:5px 9px;border-radius:4px;background:rgba(8,9,11,.72);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  opacity:0;pointer-events:none;
+  transition:opacity .35s var(--weich),transform .45s var(--tief)}
+.punkt:hover em,.punkt:focus-visible em{opacity:1;transform:translateY(-50%) translateX(0)}
+.punkt.links em{left:auto;right:26px;transform:translateY(-50%) translateX(6px)}
+.punkt.links:hover em{transform:translateY(-50%) translateX(0)}
+
+/* Einmaliger Hinweis beim ersten Halt: eine Hand, die tippt. */
+.tipphinweis{
+  position:absolute;z-index:9;pointer-events:none;opacity:0;
+  display:flex;align-items:center;gap:10px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--tinte);text-shadow:0 1px 14px rgba(0,0,0,.9)}
+.tipphinweis.da{animation:hinweisen 5.5s var(--weich) forwards}
+@keyframes hinweisen{
+  0%{opacity:0;transform:translateY(8px)}
+  14%{opacity:1;transform:translateY(0)}
+  78%{opacity:1}
+  100%{opacity:0}}
+.tipphinweis svg{width:20px;height:20px;fill:none;stroke:var(--akzent);stroke-width:1.6;
+  stroke-linecap:round;stroke-linejoin:round;animation:tippen 1.6s var(--weich) infinite}
+@keyframes tippen{0%,100%{transform:translateY(0)}45%{transform:translateY(-5px)}}
+
+/* ========================================================== Die Karte === */
+.karte{
+  position:absolute;z-index:12;right:clamp(16px,3.4vw,44px);left:auto;top:50%;
+  transform:translateY(-50%) translateX(24px);
+  width:min(400px,42vw);
+  background:rgba(11,13,17,.9);border:1px solid var(--haar-hell);border-radius:12px;
+  padding:clamp(20px,2.4vw,30px);
+  backdrop-filter:blur(26px) saturate(1.25);-webkit-backdrop-filter:blur(26px) saturate(1.25);
+  box-shadow:0 30px 90px rgba(0,0,0,.6);
+  opacity:0;visibility:hidden;
+  transition:opacity .5s var(--weich),transform .6s var(--tief),visibility .5s}
+.karte.da{opacity:1;visibility:visible;transform:translateY(-50%) translateX(0)}
+/* Liegt der angeklickte Punkt rechts, klappt die Karte nach links -
+   sonst verdeckt sie genau die Punkte, die noch offen sind. */
+.karte.linksseitig{right:auto;left:clamp(16px,3.4vw,44px);transform:translateY(-50%) translateX(-24px)}
+.karte.linksseitig.da{transform:translateY(-50%) translateX(0)}
+.karte .marke{
+  display:flex;align-items:center;gap:9px;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.24em;text-transform:uppercase;
+  color:var(--akzent);margin-bottom:15px}
+.karte .marke s{display:block;width:22px;height:1px;background:var(--akzent);opacity:.5;text-decoration:none}
+.karte h3{font-family:var(--serif);font-weight:400;font-size:clamp(20px,2.1vw,27px);
+  line-height:1.16;letter-spacing:-.025em;margin-bottom:13px}
+.karte p{font-size:14.5px;line-height:1.62;color:#c9ccd2}
+.karte .quelle{
+  margin-top:17px;padding-top:14px;border-top:1px solid var(--haar);
+  font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--still);display:flex;align-items:center;gap:7px}
+.karte .quelle u{width:5px;height:5px;border-radius:50%;background:var(--still);text-decoration:none}
+.karte.vomhaus .quelle{color:#d8a66a}
+.karte.vomhaus .quelle u{background:#d8a66a}
+.karte .zu{position:absolute;top:11px;right:11px;width:30px;height:30px;
+  display:grid;place-items:center;border-radius:50%;opacity:.5;transition:opacity .3s}
+.karte .zu:hover{opacity:1}
+.karte .zu svg{width:11px;height:11px;stroke:var(--tinte);stroke-width:1.7;fill:none;stroke-linecap:round}
+
+/* ======================================================== Kopf und Fuss == */
+.kopf{position:absolute;top:0;left:0;right:0;z-index:14;display:flex;
+  justify-content:space-between;align-items:flex-start;
+  padding:clamp(14px,2.2vw,26px);pointer-events:none}
+.kopf>*{pointer-events:auto}
+
+/* Der Zaehler. Das Spielelement: man sieht, wieviel noch fehlt. */
+.zaehler{display:flex;align-items:center;gap:11px}
+.zaehler .ring{position:relative;width:34px;height:34px}
+.zaehler svg{width:34px;height:34px;transform:rotate(-90deg)}
+.zaehler circle{fill:none;stroke-width:2}
+.zaehler .bahn{stroke:rgba(244,245,247,.16)}
+.zaehler .voll{stroke:var(--akzent);stroke-linecap:round;
+  stroke-dasharray:94.2;stroke-dashoffset:94.2;
+  transition:stroke-dashoffset .8s var(--tief)}
+.zaehler .text{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--tinte);
+  text-shadow:0 1px 12px rgba(0,0,0,.9)}
+.zaehler .text b{color:var(--akzent);font-weight:400}
+.zaehler .text i{display:block;font-size:8.5px;letter-spacing:.2em;font-style:normal;
+  text-transform:uppercase;color:var(--leise);margin-top:3px}
+
+.steuer{display:flex;align-items:center;gap:7px}
+.wahl{display:flex;border:1px solid var(--haar-hell);border-radius:999px;overflow:hidden;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);background:rgba(10,12,15,.44)}
+.wahl button{font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+  padding:10px 12px;min-height:38px;color:var(--leise);transition:color .3s,background .3s}
+.wahl button[aria-pressed="true"]{color:var(--grund);background:var(--tinte)}
+.knopfrund{width:40px;height:38px;display:grid;place-items:center;
+  border:1px solid var(--haar-hell);border-radius:999px;background:rgba(10,12,15,.44);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);transition:border-color .3s}
+.knopfrund:hover{border-color:var(--tinte)}
+.knopfrund svg{width:14px;height:14px;fill:none;stroke:var(--tinte);stroke-width:1.6;
+  stroke-linecap:round;stroke-linejoin:round}
+.knopfrund .kreuz{opacity:0}
+.knopfrund[aria-pressed="true"] .kreuz{opacity:1}
+.knopfrund[aria-pressed="true"] .welle{opacity:0}
+
+/* Lisas Zeile, unten mittig. */
+.zeile{position:absolute;left:6%;right:6%;bottom:clamp(74px,13%,116px);z-index:9;
+  text-align:center;pointer-events:none}
+.zeile p{font-family:var(--serif);font-size:clamp(16px,2.2vw,28px);line-height:1.34;
+  letter-spacing:-.02em;max-width:26ch;margin:0 auto;
+  text-shadow:0 2px 40px rgba(0,0,0,.95),0 1px 6px rgba(0,0,0,.85);
+  opacity:0;transform:translateY(14px);
+  transition:opacity .8s var(--weich),transform .9s var(--tief)}
+.zeile p.da{opacity:1;transform:none}
+
+/* Der Fuss: Haltname links, Weiter rechts, Fortschritt darunter. */
+.fuss{position:absolute;left:0;right:0;bottom:0;z-index:14;
+  padding:clamp(12px,2vw,22px) clamp(14px,2.6vw,30px);
+  display:flex;align-items:flex-end;justify-content:space-between;gap:18px;pointer-events:none}
+.fuss>*{pointer-events:auto}
+.haltname{font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;
+  color:var(--leise);opacity:0;transition:opacity .6s var(--weich)}
+.haltname.da{opacity:1}
+.haltname b{color:var(--tinte);font-weight:400}
+
+.weiter{display:inline-flex;align-items:center;gap:13px;
+  padding:11px 11px 11px 22px;border:1px solid var(--haar-hell);border-radius:999px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;
+  background:rgba(10,12,15,.5);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  opacity:0;visibility:hidden;transform:translateY(8px);
+  transition:opacity .5s var(--weich),transform .5s var(--tief),visibility .5s,
+             border-color .3s,background .3s,gap .3s}
+.buehne.haelt .weiter{opacity:1;visibility:visible;transform:none;transition-delay:.9s}
+.weiter:hover{border-color:var(--tinte);background:rgba(244,245,247,.07);gap:18px}
+.weiter u{width:27px;height:27px;border-radius:50%;background:var(--tinte);
+  display:grid;place-items:center;text-decoration:none}
+.weiter u svg{width:9px;height:9px;fill:var(--grund);margin-left:2px}
+.weiter .offen{color:var(--akzent);text-transform:none;letter-spacing:.04em;font-size:10px}
+
+.leiste{position:absolute;left:0;right:0;bottom:0;z-index:15;display:flex;gap:3px;
+  padding:0 clamp(14px,2.6vw,30px) clamp(7px,1.2vw,12px)}
+.leiste i{flex:1;height:2px;background:rgba(244,245,247,.18);border-radius:2px;
+  position:relative;overflow:hidden}
+.leiste i::after{content:"";position:absolute;inset:0;background:var(--tinte);
+  transform-origin:left;transform:scaleX(var(--p,0));transition:transform .2s linear}
+.leiste i.fertig::after{background:var(--akzent)}
+
+/* ====================================================== Anfang und Ende == */
+.start{position:absolute;inset:0;z-index:20;display:grid;place-items:center;
+  background:rgba(8,9,11,.5);backdrop-filter:blur(2px);
+  transition:opacity .8s var(--weich),visibility .8s}
+.start.weg{opacity:0;visibility:hidden}
+.startknopf{width:clamp(96px,14vw,138px);height:clamp(96px,14vw,138px);
+  display:grid;place-items:center;border-radius:50%;position:relative;opacity:.5;
+  transition:opacity .5s var(--weich),transform .5s var(--tief)}
+.startknopf:hover{opacity:.98;transform:scale(1.05)}
+.startknopf::before{content:"";position:absolute;inset:-56%;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(4,5,7,.62),rgba(4,5,7,.28) 52%,transparent 78%)}
+.startknopf s{position:absolute;inset:0;border-radius:50%;text-decoration:none;
+  border:1px solid rgba(244,245,247,.82);background:rgba(8,10,13,.22);
+  backdrop-filter:blur(4px) brightness(.92);-webkit-backdrop-filter:blur(4px) brightness(.92)}
+.startknopf b{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(244,245,247,.5);
+  animation:pulsen 3.4s var(--weich) infinite}
+@keyframes pulsen{0%{transform:scale(1);opacity:.55}70%,100%{transform:scale(1.42);opacity:0}}
+.startknopf svg{position:relative;width:21%;height:21%;fill:var(--tinte);margin-left:8%}
+.startknopf em{position:absolute;left:50%;transform:translateX(-50%);bottom:-36px;
+  white-space:nowrap;font-style:normal;
+  font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;
+  color:var(--tinte);text-shadow:0 1px 16px rgba(0,0,0,.95)}
+
+.ende{position:absolute;inset:0;z-index:19;display:grid;place-items:center;
+  background:rgba(8,9,11,.9);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  opacity:0;visibility:hidden;transition:opacity .9s var(--weich),visibility .9s}
+.ende.da{opacity:1;visibility:visible}
+.ende .mitte{text-align:center;max-width:44ch;padding:0 24px}
+.ende .zahl{font-family:var(--serif);font-size:clamp(46px,8vw,90px);line-height:1;
+  letter-spacing:-.04em;margin-bottom:8px}
+.ende .zahl u{color:var(--akzent);text-decoration:none}
+.ende .von{font-family:var(--mono);font-size:10px;letter-spacing:.26em;text-transform:uppercase;
+  color:var(--leise);margin-bottom:26px}
+.ende h2{font-family:var(--serif);font-weight:400;font-size:clamp(19px,2.3vw,27px);
+  line-height:1.3;letter-spacing:-.02em;margin-bottom:14px}
+.ende p{font-size:14px;line-height:1.62;color:var(--leise);margin-bottom:32px}
+.ende .knoepfe{display:flex;gap:11px;justify-content:center;flex-wrap:wrap}
+.ende .knoepfe button{display:inline-flex;align-items:center;gap:11px;
+  padding:13px 22px;border:1px solid var(--haar-hell);border-radius:999px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;
+  transition:border-color .3s,background .3s}
+.ende .knoepfe button:hover{border-color:var(--tinte);background:rgba(244,245,247,.06)}
+.ende .knoepfe .stark{background:var(--tinte);color:var(--grund);border-color:var(--tinte)}
+.ende .knoepfe .stark:hover{background:#fff}
+
+.laedt{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:21;
+  display:flex;align-items:center;gap:12px;font-family:var(--mono);font-size:10px;
+  letter-spacing:.22em;text-transform:uppercase;color:var(--leise);
+  opacity:0;visibility:hidden;transition:opacity .4s,visibility .4s}
+.laedt.da{opacity:1;visibility:visible}
+.laedt s{width:14px;height:14px;border-radius:50%;text-decoration:none;
+  border:1.5px solid rgba(244,245,247,.2);border-top-color:var(--akzent);
+  animation:kreisen .85s linear infinite}
+@keyframes kreisen{to{transform:rotate(360deg)}}
+
+/* ============================================================= Telefon == */
+@media (max-width:820px){
+  /* Solange die Karte offen ist, treten Fusszeile und Lisas Zeile zurueck.
+     Sonst liegen drei Dinge uebereinander und nichts ist mehr lesbar. */
+  .buehne.karteoffen .fuss,
+  .buehne.karteoffen .zeile,
+  .buehne.karteoffen .leiste{opacity:0;pointer-events:none;
+    transition:opacity .35s var(--weich)}
+
+  .karte{right:0;left:0;top:auto;bottom:0;width:auto;
+    border-radius:14px 14px 0 0;border-left:0;border-right:0;border-bottom:0;
+    transform:translateY(100%);max-height:62dvh;overflow-y:auto;
+    padding:24px 20px calc(24px + env(safe-area-inset-bottom))}
+  .karte.da{transform:translateY(0)}
+  .punkt em{display:none}
+  .punkt{width:56px;height:56px}
+  .zeile{bottom:clamp(88px,16%,130px)}
+  .zeile p{font-size:15.5px;max-width:22ch}
+  .zaehler .text span{display:none}
+  .fuss{align-items:center}
+  .haltname{font-size:9px;letter-spacing:.18em}
+  .weiter{padding:10px 10px 10px 17px;font-size:9.5px;letter-spacing:.14em}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important}
+  .buehne.haelt video{animation:none}
+  .punkt b{opacity:.5;animation:none;transform:scale(2.4)}
+}
+</style>
+
+<div class="buehne" id="buehne">
+  <canvas class="rand" id="rand" aria-hidden="true"></canvas>
+  <div class="bild"><video id="kino" playsinline muted preload="auto" poster="bild/poster.jpg"></video></div>
+  <div class="korn" aria-hidden="true"></div>
+  <div class="schatten" aria-hidden="true"></div>
+
+  <div class="feld" id="feld"></div>
+
+  <div class="tipphinweis" id="tipphinweis" aria-hidden="true">
+    <svg viewBox="0 0 24 24"><path d="M9 11V6a2 2 0 0 1 4 0v5"/><path d="M13 11V9a2 2 0 0 1 4 0v2"/><path d="M17 11v-1a2 2 0 0 1 4 0v6a5 5 0 0 1-5 5h-3a6 6 0 0 1-6-6v-4a2 2 0 0 1 4 0"/></svg>
+    <span data-de>Punkte antippen</span><span data-en>Tap the points</span>
+  </div>
+
+  <div class="karte" id="karte" role="dialog" aria-modal="false" aria-hidden="true">
+    <button class="zu" id="karteZu" aria-label="Schließen">
+      <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <div class="marke"><s></s><span id="kMarke"></span></div>
+    <h3 id="kKopf"></h3>
+    <p id="kText"></p>
+    <div class="quelle"><u></u><span id="kQuelle"></span></div>
+  </div>
+
+  <header class="kopf">
+    <div class="zaehler">
+      <div class="ring">
+        <svg viewBox="0 0 34 34" aria-hidden="true">
+          <circle class="bahn" cx="17" cy="17" r="15"/>
+          <circle class="voll" id="ringVoll" cx="17" cy="17" r="15"/>
+        </svg>
+      </div>
+      <div class="text"><b id="zGefunden">0</b>/<span id="zGesamt" style="display:inline">0</span>
+        <i><span data-de>entdeckt</span><span data-en>found</span></i></div>
+    </div>
+    <div class="steuer">
+      <div class="wahl" id="wahl" role="group" aria-label="Sprache">
+        <button id="bDe" aria-pressed="true">DE</button>
+        <button id="bEn" aria-pressed="false">EN</button>
+      </div>
+      <button class="knopfrund" id="bTon" aria-pressed="false" aria-label="Ton aus">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M11 5 6 9H3v6h3l5 4V5z"/>
+          <g class="welle"><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6a9 9 0 0 1 0 12"/></g>
+          <g class="kreuz"><path d="M16 9.5l5 5"/><path d="M21 9.5l-5 5"/></g>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="zeile"><p id="zeile"></p></div>
+
+  <div class="fuss">
+    <div class="haltname" id="haltname"></div>
+    <button class="weiter" id="weiter">
+      <span id="weiterText"></span>
+      <u><svg viewBox="0 0 12 12" aria-hidden="true"><polygon points="2,1 11,6 2,11"/></svg></u>
+    </button>
+  </div>
+  <div class="leiste" id="leiste"></div>
+
+  <div class="start" id="start">
+    <button class="startknopf" id="startknopf" aria-label="Rundgang starten">
+      <s></s><b aria-hidden="true"></b>
+      <svg viewBox="0 0 12 12" aria-hidden="true"><polygon points="2,1 11,6 2,11"/></svg>
+      <em><span data-de>Zimmer entdecken</span><span data-en>Explore the room</span></em>
+    </button>
+  </div>
+
+  <div class="ende" id="ende">
+    <div class="mitte">
+      <div class="zahl"><u id="eGefunden">0</u></div>
+      <div class="von"><span data-de>von</span><span data-en>of</span> <span id="eGesamt">0</span>
+        <span data-de>Hinweisen gefunden</span><span data-en>details found</span></div>
+      <h2 id="eKopf"></h2>
+      <p id="eText"></p>
+      <div class="knoepfe">
+        <button class="stark" id="eNochmal"><span data-de>Noch einmal</span><span data-en>Again</span></button>
+        <button id="eVerpasst"><span data-de>Verpasste ansehen</span><span data-en>See what I missed</span></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="laedt" id="laedt"><s aria-hidden="true"></s>
+    <span data-de>Lädt</span><span data-en>Loading</span></div>
+</div>
+
+<script src="zimmer.js"></script>
+<script src="punkte.js"></script>
+<script>
+(function(){
+"use strict";
+
+var Z = window.ZIMMER || {}, P = window.PUNKTE || {halte:[]};
+var KAPITEL = Z.kapitel || [], LAENGE = Z.laenge || 58.76, HALTE = P.halte || [];
+var $ = function(i){ return document.getElementById(i); };
+
+var buehne=$("buehne"), kino=$("kino"), feld=$("feld"), karte=$("karte"),
+    zeileEl=$("zeile"), rand=$("rand"), laedt=$("laedt");
+var sprache="de", stumm=false, laeuft=false, gesagt=[], haltIndex=-1;
+var stimme=new Audio(); stimme.preload="auto";
+var tonFrei=false, freigabeLaeuft=false;
+
+kino.src = Z.video || "tour.mp4";
+if(Z.englisch === false) $("wahl").style.display="none";
+
+/* Alle Punkte durchnummerieren, damit "gefunden" zaehlbar wird. */
+var ALLE = [];
+HALTE.forEach(function(h, hi){
+  h.punkte.forEach(function(p, pi){ ALLE.push({h:hi, p:pi, daten:p, gesehen:false}); });
+});
+$("zGesamt").textContent = ALLE.length;
+$("eGesamt").textContent = ALLE.length;
+
+/* Fortschrittsleiste: ein Feld je Halt. */
+var leiste=$("leiste");
+HALTE.forEach(function(){ leiste.appendChild(document.createElement("i")); });
+var leisteEl=[].slice.call(leiste.children);
+
+/* ------------------------------------------------------------ Ton ------ */
+function tonFreischalten(){
+  if(tonFrei || stumm) return;
+  tonFrei=true; freigabeLaeuft=true;
+  function fertig(){ freigabeLaeuft=false; stimme.volume=1; }
+  try{
+    stimme.src="ton/"+sprache+"/1.m4a"; stimme.volume=0;
+    var v=stimme.play();
+    if(v && v.then) v.then(function(){
+      if(!freigabeLaeuft) return;
+      stimme.pause(); stimme.currentTime=0; fertig();
+    }).catch(function(){ tonFrei=false; fertig(); });
+    else { stimme.pause(); fertig(); }
+  }catch(e){ tonFrei=false; fertig(); }
+}
+function sprich(i){
+  if(stumm) return;
+  freigabeLaeuft=false; stimme.volume=1;
+  try{ stimme.pause(); }catch(e){}
+  stimme.src="ton/"+sprache+"/"+(i+1)+".m4a";
+  stimme.play().catch(function(){});
+}
+function zeigeZeile(i){
+  zeileEl.classList.remove("da");
+  setTimeout(function(){
+    zeileEl.textContent = KAPITEL[i] ? KAPITEL[i].lisa[sprache] : "";
+    zeileEl.classList.add("da");
+  }, 240);
+}
+
+/* ------------------------------------------------- Randfuellung -------- */
+var ctx=null, malTimer=null;
+rand.width=32; rand.height=18;
+function maleRand(){
+  if(!ctx) ctx=rand.getContext("2d");
+  if(kino.readyState>=2){ try{ ctx.drawImage(kino,0,0,32,18); rand.classList.add("da"); }catch(e){} }
+}
+
+/* Das Punktefeld genau auf das sichtbare Videorechteck legen. Ohne das
+   zeigen die Prozentangaben ins Leere, sobald oben und unten Balken sind. */
+function feldAusrichten(){
+  var vb = kino.videoWidth || 1920, vh = kino.videoHeight || 1080;
+  var kb = kino.clientWidth, kh = kino.clientHeight;
+  if(!kb || !kh) return;
+  var skal = Math.min(kb / vb, kh / vh);
+  var b = vb * skal, h = vh * skal;
+  var r = kino.getBoundingClientRect();
+  var s = buehne.getBoundingClientRect();
+  feld.style.left   = (r.left - s.left + (kb - b) / 2) + "px";
+  feld.style.top    = (r.top  - s.top  + (kh - h) / 2) + "px";
+  feld.style.width  = b + "px";
+  feld.style.height = h + "px";
+}
+kino.addEventListener("loadedmetadata", feldAusrichten);
+addEventListener("resize", feldAusrichten);
+addEventListener("orientationchange", function(){ setTimeout(feldAusrichten, 260); });
+
+/* ============================================================ Halte ===== */
+function baueHalt(hi){
+  feldAusrichten();
+  var h = HALTE[hi];
+  feld.innerHTML = "";
+  h.punkte.forEach(function(p, pi){
+    var eintrag = ALLE.filter(function(a){ return a.h===hi && a.p===pi; })[0];
+    var b = document.createElement("button");
+    b.className = "punkt" + (eintrag.gesehen ? " gesehen" : "") + (p.x > 62 ? " links" : "");
+    b.style.left = p.x + "%"; b.style.top = p.y + "%";
+    b.setAttribute("aria-label",
+      (sprache==="de" ? "Mehr über " : "More about ") + p.kopf[sprache]);
+    b.innerHTML = '<b aria-hidden="true"></b><i aria-hidden="true"></i>' +
+                  '<em>' + p.marke[sprache] + '</em>';
+    b.addEventListener("click", function(){ oeffneKarte(eintrag, b); });
+    feld.appendChild(b);
+  });
+
+  $("haltname").innerHTML = "<b>" + h.titel[sprache] + "</b>";
+  $("haltname").classList.add("da");
+  buehne.classList.add("haelt");
+  neuerWeiterText();
+
+  /* Der Tipphinweis nur beim allerersten Halt. Danach weiss man es. */
+  if(hi === 0){
+    var erst = h.punkte[0];
+    var hin = $("tipphinweis");
+    var fr = feld.getBoundingClientRect(), br = buehne.getBoundingClientRect();
+    hin.style.left = (fr.left - br.left + fr.width  * (erst.x + 4) / 100) + "px";
+    hin.style.top  = (fr.top  - br.top  + fr.height * (erst.y + 7) / 100) + "px";
+    hin.classList.remove("da"); void hin.offsetWidth; hin.classList.add("da");
+  }
+}
+
+function neuerWeiterText(){
+  var h = haltIndex;
+  var offen = ALLE.filter(function(a){ return a.h===h && !a.gesehen; }).length;
+  var letzter = h >= HALTE.length - 1;
+  var wort = letzter ? (sprache==="de" ? "Abschließen" : "Finish")
+                     : (sprache==="de" ? "Weiter" : "Continue");
+  $("weiterText").innerHTML = wort + (offen
+    ? ' <span class="offen">· ' + offen + (sprache==="de" ? " offen" : " left") + '</span>'
+    : "");
+}
+
+function oeffneKarte(eintrag, knopf){
+  var p = eintrag.daten;
+  karte.classList.toggle("linksseitig", p.x > 50);
+  $("kMarke").textContent = p.marke[sprache];
+  $("kKopf").textContent  = p.kopf[sprache];
+  $("kText").textContent  = p.text[sprache];
+  var vomHaus = p.beleg === "haus";
+  karte.classList.toggle("vomhaus", vomHaus);
+  $("kQuelle").textContent = vomHaus
+    ? (sprache==="de" ? "Platzhalter — diese Angabe kommt vom Haus"
+                      : "Placeholder — this answer comes from the hotel")
+    : (sprache==="de" ? "Im Bild belegt" : "Evidenced in the footage");
+  karte.classList.add("da");
+  buehne.classList.add("karteoffen");
+  karte.setAttribute("aria-hidden","false");
+
+  if(!eintrag.gesehen){
+    eintrag.gesehen = true;
+    knopf.classList.add("gesehen");
+    zaehle();
+    neuerWeiterText();
+  }
+}
+function schliesseKarte(){
+  karte.classList.remove("da");
+  buehne.classList.remove("karteoffen");
+  karte.setAttribute("aria-hidden","true");
+}
+$("karteZu").addEventListener("click", schliesseKarte);
+buehne.addEventListener("click", function(e){
+  if(!karte.classList.contains("da")) return;
+  if(karte.contains(e.target) || e.target.closest(".punkt")) return;
+  schliesseKarte();
+});
+
+function zaehle(){
+  var n = ALLE.filter(function(a){ return a.gesehen; }).length;
+  $("zGefunden").textContent = n;
+  var ring = $("ringVoll");
+  ring.style.strokeDashoffset = (94.2 * (1 - n / ALLE.length)).toFixed(1);
+}
+
+function weiter(){
+  schliesseKarte();
+  buehne.classList.remove("haelt");
+  $("haltname").classList.remove("da");
+  feld.innerHTML = "";
+  if(haltIndex >= 0) leisteEl[haltIndex].classList.add("fertig");
+  if(haltIndex >= HALTE.length - 1){ zeigeEnde(); return; }
+  kino.play().catch(function(){});
+}
+$("weiter").addEventListener("click", weiter);
+
+/* --------------------------------------------------- Uhrwerk ----------- */
+kino.addEventListener("timeupdate", function(){
+  var t = kino.currentTime;
+
+  var k = -1;
+  for(var n=0;n<KAPITEL.length;n++) if(t >= KAPITEL[n].bei) k = n;
+  if(k>=0 && !gesagt[k]){ gesagt[k]=true; sprich(k); zeigeZeile(k); }
+
+  for(var i=0;i<HALTE.length;i++){
+    var a = i===0 ? 0 : HALTE[i-1].bei;
+    var b = HALTE[i].bei;
+    var p = t<=a ? 0 : (t>=b ? 1 : (t-a)/(b-a));
+    if(!leisteEl[i].classList.contains("fertig"))
+      leisteEl[i].style.setProperty("--p", p.toFixed(3));
+  }
+
+  if(haltIndex + 1 < HALTE.length && t >= HALTE[haltIndex+1].bei && !buehne.classList.contains("haelt")){
+    haltIndex++;
+    kino.pause();
+    baueHalt(haltIndex);
+  }
+});
+
+kino.addEventListener("ended", function(){ if(!buehne.classList.contains("haelt")) zeigeEnde(); });
+kino.addEventListener("waiting", function(){ laedt.classList.add("da"); });
+kino.addEventListener("playing", function(){ laedt.classList.remove("da"); });
+
+/* ------------------------------------------------------- Ende ---------- */
+function zeigeEnde(){
+  laeuft=false;
+  clearInterval(malTimer); malTimer=null;
+  try{ stimme.pause(); }catch(e){}
+  zeileEl.classList.remove("da");
+  var n = ALLE.filter(function(a){ return a.gesehen; }).length;
+  $("eGefunden").textContent = n;
+  var alles = n === ALLE.length;
+  $("eKopf").textContent = alles
+    ? (sprache==="de" ? "Sie wissen jetzt mehr über dieses Zimmer als die meisten Gäste beim Einchecken."
+                      : "You now know more about this room than most guests do at check-in.")
+    : (sprache==="de" ? "Der Rest steht noch da."
+                      : "The rest is still there.");
+  $("eText").textContent = alles
+    ? (sprache==="de" ? "Genau das ist der Punkt: Wer vorher weiß, worauf er sich einlässt, storniert nicht und beschwert sich nicht."
+                      : "That is the point: a guest who knows what they are booking does not cancel and does not complain.")
+    : (sprache==="de" ? "Sie können die übersprungenen Hinweise noch ansehen, ohne den Rundgang neu zu starten."
+                      : "You can still look at the details you skipped, without starting over.");
+  $("eVerpasst").style.display = alles ? "none" : "";
+  $("ende").classList.add("da");
+}
+$("eNochmal").addEventListener("click", function(){
+  ALLE.forEach(function(a){ a.gesehen=false; });
+  gesagt=[]; haltIndex=-1; zaehle();
+  leisteEl.forEach(function(l){ l.classList.remove("fertig"); l.style.setProperty("--p",0); });
+  $("ende").classList.remove("da");
+  try{ kino.currentTime=0; }catch(e){}
+  starte();
+});
+$("eVerpasst").addEventListener("click", function(){
+  var offen = ALLE.filter(function(a){ return !a.gesehen; });
+  if(!offen.length) return;
+  $("ende").classList.remove("da");
+  haltIndex = offen[0].h;
+  try{ kino.currentTime = HALTE[haltIndex].bei; }catch(e){}
+  kino.pause();
+  baueHalt(haltIndex);
+});
+
+/* ------------------------------------------------------ Starten -------- */
+function starte(){
+  tonFreischalten();
+  laeuft=true;
+  $("start").classList.add("weg");
+  clearInterval(malTimer); maleRand(); malTimer=setInterval(maleRand,200);
+  laedt.classList.toggle("da", kino.readyState<3);
+  function ab(){ laedt.classList.remove("da"); kino.play().catch(function(){}); }
+  if(kino.readyState>=3) ab(); else kino.addEventListener("canplay", ab, {once:true});
+}
+$("startknopf").addEventListener("click", starte);
+
+/* ------------------------------------------------ Sprache und Ton ------ */
+function setzeSprache(neu){
+  sprache=neu; document.documentElement.lang=neu;
+  $("bDe").setAttribute("aria-pressed", neu==="de");
+  $("bEn").setAttribute("aria-pressed", neu==="en");
+  if(buehne.classList.contains("haelt") && haltIndex>=0){ baueHalt(haltIndex); schliesseKarte(); }
+  var t=kino.currentTime, i=-1;
+  for(var n=0;n<KAPITEL.length;n++) if(t>=KAPITEL[n].bei) i=n;
+  if(i>=0 && laeuft){ zeigeZeile(i); if(!stumm) sprich(i); }
+}
+$("bDe").addEventListener("click", function(){ setzeSprache("de"); });
+$("bEn").addEventListener("click", function(){ setzeSprache("en"); });
+$("bTon").addEventListener("click", function(){
+  stumm=!stumm;
+  this.setAttribute("aria-pressed", stumm);
+  this.setAttribute("aria-label", stumm
+    ? (sprache==="de"?"Ton an":"Sound on") : (sprache==="de"?"Ton aus":"Sound off"));
+  if(stumm){ try{ stimme.pause(); stimme.currentTime=0; }catch(e){} }
+  else { tonFreischalten(); }
+});
+
+document.addEventListener("keydown", function(e){
+  if(e.key==="Escape") schliesseKarte();
+  if(e.key===" " && buehne.classList.contains("haelt")){ e.preventDefault(); weiter(); }
+});
+
+(function(){
+  var a=(location.search.match(/[?&]s=(de|en)/)||[])[1];
+  var b=(navigator.language||"de").slice(0,2)==="en" ? "en" : "de";
+  if((a||b)==="en") setzeSprache("en");
+  else neuerWeiterText();
+})();
+zaehle();
+})();
+</script>
+</html>
