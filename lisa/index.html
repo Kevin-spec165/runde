@@ -115,7 +115,7 @@ html[lang="de"] [data-de],html[lang="en"] [data-en]{display:revert}
 /* -------------------------------------------------------------------- Buehne
    Der erste Bildschirm. Das Video laeuft stumm als Hintergrund, damit die
    Seite nicht als Standbild beginnt — der Ton kommt erst auf Knopfdruck. */
-.buehne{position:relative;height:100svh;min-height:520px;overflow:hidden}
+.buehne{position:relative;height:100vh;height:100svh;min-height:520px;overflow:hidden}
 .buehne video,.buehne .platzhalter{
   position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
   transform:scale(1.06);
@@ -266,7 +266,7 @@ html:not(.js) .knopf{display:none}
 .doku{position:relative;padding-bottom:clamp(60px,12vh,140px)}
 .gitter{display:grid;grid-template-columns:1fr 1fr;gap:0;align-items:start}
 
-.saeule{position:sticky;top:0;height:100svh;overflow:hidden}
+.saeule{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden}
 .saeule .rahmen{position:absolute;inset:0}
 .saeule img{
   position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
@@ -291,7 +291,7 @@ html:not(.js) .saeule img:first-child{opacity:1;transform:none}
 
 .spalte{padding:0 var(--rand)}
 .kap{
-  min-height:88svh;display:flex;flex-direction:column;justify-content:center;
+  min-height:88vh;min-height:88svh;display:flex;flex-direction:column;justify-content:center;
   padding:clamp(60px,10vh,120px) 0;
   border-bottom:1px solid var(--haar);
 }
@@ -501,7 +501,7 @@ html:not(.js) .saeule img:first-child{opacity:1;transform:none}
 /* ----------------------------------------------------------------- Telefon */
 @media (max-width:860px){
   .gitter{grid-template-columns:1fr}
-  .saeule{height:64svh;top:0;z-index:1}
+  .saeule{height:64vh;height:64svh;top:0;z-index:1}
   .saeule .kante{background:linear-gradient(to bottom,rgba(8,9,11,.55),transparent 26%,transparent 58%,rgba(8,9,11,.96))}
   .spalte{position:relative;z-index:2;background:var(--grund);padding-top:8px}
   .saeule{display:none}
@@ -897,7 +897,14 @@ function zeigeLadestand(){
   knopf.classList.toggle("bereit", p >= GENUG);
   if(film.classList.contains("an")) laedtEl.classList.toggle("da", kino.readyState < 3);
 }
-setInterval(zeigeLadestand, 400);
+var ladeTimer = setInterval(zeigeLadestand, 400);
+/* Sobald genug geladen ist und der Film nicht laeuft, hoert das Messen auf.
+   Alle 400 ms nachzusehen, was sich nicht mehr aendert, kostet nur Akku. */
+function ladeTimerPruefen(){
+  if(film.classList.contains("an")) return;
+  if(ladestand(kino) >= 0.99 && ladeTimer){ clearInterval(ladeTimer); ladeTimer = null; }
+}
+setInterval(ladeTimerPruefen, 2000);
 kino.addEventListener("progress", zeigeLadestand);
 kino.addEventListener("canplay", zeigeLadestand);
 kino.addEventListener("waiting", function(){ laedtEl.classList.add("da"); });
@@ -1012,7 +1019,7 @@ kino.addEventListener("seeked", function(){
 kino.addEventListener("ended", function(){
   laeuft = false;
   zeileEl.classList.remove("da"); kapName.classList.remove("da");
-  setTimeout(schliesse, 1100);
+  setTimeout(zurueckOderZu, 1100);
 });
 
 /* Alles ausser dem Film wird fuer Tastatur und Vorlesegeraete stillgelegt.
@@ -1054,6 +1061,9 @@ function oeffne(){
   zeileEl.classList.remove("da"); kapName.classList.remove("da");
   film.classList.add("an");
   film.removeAttribute("aria-hidden");
+  /* Am Telefon schliesst der Zurueck-Knopf ein aufgeklapptes Fenster.
+     Ohne diesen Eintrag verliesse er mitten im Rundgang die Seite. */
+  try{ history.pushState({film:1}, ""); }catch(e){}
   starrMachen(true);
   document.body.style.overflow = "hidden";
   randAn(true);
@@ -1095,7 +1105,17 @@ function schliesse(){
 
 $("start").addEventListener("click", oeffne);
 $("start2").addEventListener("click", oeffne);
-$("zu").addEventListener("click", schliesse);
+$("zu").addEventListener("click", function(){ zurueckOderZu(); });
+
+/* Zumachen ueber den Verlauf, damit der Zurueck-Knopf dasselbe tut wie das
+   Kreuz - und nicht zwei Eintraege liegenbleiben. */
+function zurueckOderZu(){
+  if(history.state && history.state.film) history.back();
+  else schliesse();
+}
+addEventListener("popstate", function(){
+  if(film.classList.contains("an")) schliesse();
+});
 
 /* Auf das Bild tippen haelt an und laeuft weiter — Bild und Stimme zusammen. */
 $("halt").addEventListener("click", function(){
@@ -1114,7 +1134,7 @@ kino.addEventListener("pause", function(){ try{ stimme.pause(); }catch(e){} });
 
 document.addEventListener("keydown", function(e){
   var offen = film.classList.contains("an");
-  if(e.key === "Escape" && offen) return schliesse();
+  if(e.key === "Escape" && offen) return zurueckOderZu();
   if(e.key === " " && offen){ e.preventDefault(); return $("halt").click(); }
 
   /* Solange der Film laeuft, bleibt der Fokus in ihm. Sonst springt die
