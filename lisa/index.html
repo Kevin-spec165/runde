@@ -8,7 +8,7 @@
 <meta property="og:description" content="58 Sekunden, und Sie wissen, worauf Sie sich einlassen.">
 <meta property="og:image" content="https://kevin-spec165.github.io/runde/lisa/bild/poster.jpg">
 <meta property="og:image:width" content="1600">
-<meta property="og:image:height" content="900">
+<meta property="og:image:height" content="899">
 <meta property="og:url" content="https://kevin-spec165.github.io/runde/lisa/">
 <meta property="og:locale" content="de_DE">
 <meta property="og:locale:alternate" content="en_GB">
@@ -725,8 +725,8 @@ var KAPITEL = [
     lisa: {de:"Sie stehen in der Tür. Und das Erste, was Sie sehen, ist nicht der Fernseher. Sondern Licht.",
            en:"You're standing in the doorway. And the first thing you see isn't the television. It's light."},
     frage:{de:"Sieht es aus wie auf den Fotos?",  en:"Does it look like the photos?"},
-    warum:{de:"Die Frage hinter jeder Buchung. Ein durchgehender Zug kann nicht schönen — genau das ist sein Wert.",
-           en:"The question behind every booking. One continuous take cannot flatter — that is exactly its value."} },
+    warum:{de:"Die Frage hinter jeder Buchung. Ein Rundgang zeigt auch das, was eine Fotogalerie weglässt — genau das ist sein Wert.",
+           en:"The question behind every booking. A walkthrough also shows what a photo gallery leaves out — that is exactly its value."} },
 
   { bei: 10.0, bild:"k2", beleg:"geprueft", zeit:"0:10",
     titel:{de:"Das Bett",       en:"The bed"},
@@ -949,6 +949,9 @@ ladeStimmen("de");
 
 function sprich(i){
   if(stumm) return;
+  /* Ab hier gehoert die Stimme dem Kapitel, nicht mehr der Freigabe.
+     Lautstaerke zuruecksetzen, falls die Freigabe noch bei null steht. */
+  freigabeLaeuft = false; stimme.volume = 1;
   try{ stimme.pause(); }catch(e){}
   stimme.src = tonPfad(i);
   stimme.onerror = function(){
@@ -1039,19 +1042,23 @@ function starrMachen(an){
    echten Fingertipps. Lisas Saetze beginnen aber spaeter, aus dem Zeitgeber
    des Films - ohne diesen Kniff bliebe sie dort stumm.
    Ein kurzes Anspielen und sofortiges Anhalten reicht als Freigabe. */
-var tonFrei = false;
+var tonFrei = false, freigabeLaeuft = false;
 function tonFreischalten(){
   if(tonFrei || stumm) return;
-  tonFrei = true;
+  tonFrei = true; freigabeLaeuft = true;
+  function fertig(){ freigabeLaeuft = false; stimme.volume = 1; }
   try{
     stimme.src = tonPfad(0);
     stimme.volume = 0;
     var v = stimme.play();
     if(v && v.then) v.then(function(){
-      stimme.pause(); stimme.currentTime = 0; stimme.volume = 1;
-    }).catch(function(){ stimme.volume = 1; tonFrei = false; });
-    else { stimme.pause(); stimme.volume = 1; }
-  }catch(e){ stimme.volume = 1; tonFrei = false; }
+      /* Antwortet die Freigabe erst, wenn Lisa schon spricht, darf sie
+         deren Satz nicht anhalten. Genau dafuer ist die Sperre da. */
+      if(!freigabeLaeuft) return;
+      stimme.pause(); stimme.currentTime = 0; fertig();
+    }).catch(function(){ tonFrei = false; fertig(); });
+    else { stimme.pause(); fertig(); }
+  }catch(e){ tonFrei = false; fertig(); }
 }
 
 function oeffne(){
