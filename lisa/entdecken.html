@@ -515,7 +515,10 @@ function feldAusrichten(){
   feld.style.height = h + "px";
 }
 kino.addEventListener("loadedmetadata", feldAusrichten);
-addEventListener("resize", feldAusrichten);
+addEventListener("resize", function(){
+  feldAusrichten();
+  fussZeigen(!karte.classList.contains("da"));
+});
 addEventListener("orientationchange", function(){ setTimeout(feldAusrichten, 260); });
 
 /* ============================================================ Halte ===== */
@@ -563,9 +566,24 @@ function neuerWeiterText(){
     : "");
 }
 
+/* Am Telefon liegt die Karte als Blatt über der Fusszeile. Die tritt
+   zurueck, solange gelesen wird. */
+function fussZeigen(zeigen){
+  var schmal = innerWidth <= 820;
+  [".fuss", ".zeile", ".leiste"].forEach(function(w){
+    var e = document.querySelector(w);
+    if(!e) return;
+    if(!schmal){ e.style.opacity = ""; e.style.pointerEvents = ""; return; }
+    e.style.opacity = zeigen ? "" : "0";
+    e.style.pointerEvents = zeigen ? "" : "none";
+    e.style.transition = "opacity .35s cubic-bezier(.22,.61,.36,1)";
+  });
+}
+
 function oeffneKarte(eintrag, knopf){
   var p = eintrag.daten;
   karte.classList.toggle("linksseitig", p.x > 50);
+  fussZeigen(false);
   $("kMarke").textContent = p.marke[sprache];
   $("kKopf").textContent  = p.kopf[sprache];
   $("kText").textContent  = p.text[sprache];
@@ -589,6 +607,7 @@ function oeffneKarte(eintrag, knopf){
 function schliesseKarte(){
   karte.classList.remove("da");
   buehne.classList.remove("karteoffen");
+  fussZeigen(true);
   karte.setAttribute("aria-hidden","true");
 }
 $("karteZu").addEventListener("click", schliesseKarte);
