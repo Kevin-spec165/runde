@@ -257,6 +257,24 @@ video{width:100%;height:100%;object-fit:contain;display:block;
   transform-origin:left;transform:scaleX(var(--p,0));transition:transform .2s linear}
 .leiste i.fertig::after{background:var(--akzent)}
 
+/* Von Hand angehalten. Bewusst leise: ein Zeichen in der Mitte, sonst
+   nichts. Wer anhaelt, will das Bild ansehen, nicht ein Fenster lesen. */
+.pause{position:absolute;inset:0;z-index:8;display:grid;place-items:center;
+  pointer-events:none;opacity:0;visibility:hidden;
+  transition:opacity .4s var(--weich),visibility .4s}
+.pause.da{opacity:1;visibility:visible}
+.pause .zeichen{width:66px;height:66px;border-radius:50%;display:grid;place-items:center;
+  border:1px solid rgba(244,245,247,.6);background:rgba(8,10,13,.36);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  transform:scale(.86);transition:transform .45s var(--tief)}
+.pause.da .zeichen{transform:scale(1)}
+.pause .zeichen svg{width:17px;height:17px;fill:var(--tinte)}
+.pause em{position:absolute;left:50%;transform:translateX(-50%);top:calc(50% + 52px);
+  font-style:normal;font-family:var(--mono);font-size:9.5px;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--tinte);white-space:nowrap;
+  text-shadow:0 1px 14px rgba(0,0,0,.95)}
+.buehne.handpause video{filter:saturate(.9) brightness(.8)}
+
 /* ====================================================== Anfang und Ende == */
 .start{position:absolute;inset:0;z-index:20;display:grid;place-items:center;
   background:rgba(8,9,11,.5);backdrop-filter:blur(2px);
@@ -402,6 +420,11 @@ video{width:100%;height:100%;object-fit:contain;display:block;
     </button>
   </div>
   <div class="leiste" id="leiste"></div>
+
+  <div class="pause" id="pause" aria-hidden="true">
+    <div class="zeichen"><svg viewBox="0 0 24 24"><rect x="7" y="5" width="4" height="14" rx="1"/><rect x="13" y="5" width="4" height="14" rx="1"/></svg></div>
+    <em><span data-de>Tippen oder Leertaste</span><span data-en>Tap or space</span></em>
+  </div>
 
   <div class="start" id="start">
     <button class="startknopf" id="startknopf" aria-label="Rundgang starten">
@@ -611,11 +634,6 @@ function schliesseKarte(){
   karte.setAttribute("aria-hidden","true");
 }
 $("karteZu").addEventListener("click", schliesseKarte);
-buehne.addEventListener("click", function(e){
-  if(!karte.classList.contains("da")) return;
-  if(karte.contains(e.target) || e.target.closest(".punkt")) return;
-  schliesseKarte();
-});
 
 function zaehle(){
   var n = ALLE.filter(function(a){ return a.gesehen; }).length;
@@ -634,6 +652,43 @@ function weiter(){
   kino.play().catch(function(){});
 }
 $("weiter").addEventListener("click", weiter);
+
+/* ------------------------------------------------- Anhalten und weiter --
+   Klick ins Bild und Leertaste tun dasselbe. Drei Zustaende:
+     an einem Halt  -> weiter (der Halt gilt als erledigt)
+     laeuft         -> anhalten, Lisa mit
+     von Hand aus   -> weiterlaufen, Lisa mit
+   Lisa muss mit, sonst redet sie ins stehende Bild. */
+function umschalten(){
+  if(buehne.classList.contains("haelt")) return weiter();
+  if(!laeuft) return;
+  if(kino.paused){
+    buehne.classList.remove("handpause");
+    $("pause").classList.remove("da");
+    kino.play().catch(function(){});
+    if(!stumm && stimme.src && stimme.currentTime < (stimme.duration || 0))
+      stimme.play().catch(function(){});
+  } else {
+    kino.pause();
+    try{ stimme.pause(); }catch(e){}
+    buehne.classList.add("handpause");
+    $("pause").classList.add("da");
+  }
+}
+
+/* Ein Klick ins Bild. Nicht, wenn ein Punkt, eine Karte oder ein Knopf
+   getroffen wurde - und ein offenes Kaertchen wird erst geschlossen. */
+buehne.addEventListener("click", function(e){
+  if(e.target.closest(".punkt, .karte, .kopf, .fuss, .start, .ende, .leiste")) return;
+  if(karte.classList.contains("da")){ schliesseKarte(); return; }
+  umschalten();
+});
+
+/* Laeuft das Bild aus anderem Grund weiter, verschwindet die Anzeige. */
+kino.addEventListener("play", function(){
+  buehne.classList.remove("handpause");
+  $("pause").classList.remove("da");
+});
 
 /* --------------------------------------------------- Uhrwerk ----------- */
 kino.addEventListener("timeupdate", function(){
@@ -754,8 +809,17 @@ $("bTon").addEventListener("click", function(){
 });
 
 document.addEventListener("keydown", function(e){
-  if(e.key==="Escape") schliesseKarte();
-  if(e.key===" " && buehne.classList.contains("haelt")){ e.preventDefault(); weiter(); }
+  if(e.key === "Escape"){ schliesseKarte(); return; }
+  if(e.key === " " || e.code === "Space"){
+    /* Sitzt der Tastenfokus auf einem Knopf, soll die Leertaste den Knopf
+       druecken. e.target ist aber nicht immer ein Element - dann fehlt
+       closest und der ganze Handler bricht ab. */
+    var ziel = e.target;
+    if(ziel && ziel.closest && ziel.closest("button")) return;
+    e.preventDefault();
+    if(karte.classList.contains("da")){ schliesseKarte(); return; }
+    umschalten();
+  }
 });
 
 (function(){
