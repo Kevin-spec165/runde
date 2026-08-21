@@ -6,7 +6,13 @@
 <meta name="description" content="Ein geführter Rundgang durch ein Zimmer. 58 Sekunden, sieben Fragen beantwortet, bevor gebucht wird.">
 <meta property="og:title" content="Lisa — Zimmerrundgang">
 <meta property="og:description" content="58 Sekunden, und Sie wissen, worauf Sie sich einlassen.">
-<meta property="og:image" content="bild/poster.jpg">
+<meta property="og:image" content="https://kevin-spec165.github.io/runde/lisa/bild/poster.jpg">
+<meta property="og:image:width" content="1600">
+<meta property="og:image:height" content="900">
+<meta property="og:url" content="https://kevin-spec165.github.io/runde/lisa/">
+<meta property="og:locale" content="de_DE">
+<meta property="og:locale:alternate" content="en_GB">
+<meta property="og:site_name" content="Lisa">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#08090b">
@@ -648,7 +654,7 @@ html:not(.js) .saeule img:first-child{opacity:1;transform:none}
 <section class="ende">
   <h3>
     <span data-de>Das war der Rundgang.<br>Jetzt einmal so, wie ein Gast ihn sieht.</span>
-    <span data-en>That was the tour.<br>Now the way a guest would see it.</span>
+    <span data-en>That was the tour.<br>Now see it the way a guest would.</span>
   </h3>
   <p>
     <span data-de>Mit Lisas Stimme, ohne Text zum Mitlesen, in einem Zug.</span>
@@ -1022,7 +1028,27 @@ function starrMachen(an){
   });
 }
 
+/* Ton freischalten. Auf iPhone und iPad startet Ton nur innerhalb eines
+   echten Fingertipps. Lisas Saetze beginnen aber spaeter, aus dem Zeitgeber
+   des Films - ohne diesen Kniff bliebe sie dort stumm.
+   Ein kurzes Anspielen und sofortiges Anhalten reicht als Freigabe. */
+var tonFrei = false;
+function tonFreischalten(){
+  if(tonFrei || stumm) return;
+  tonFrei = true;
+  try{
+    stimme.src = tonPfad(0);
+    stimme.volume = 0;
+    var v = stimme.play();
+    if(v && v.then) v.then(function(){
+      stimme.pause(); stimme.currentTime = 0; stimme.volume = 1;
+    }).catch(function(){ stimme.volume = 1; tonFrei = false; });
+    else { stimme.pause(); stimme.volume = 1; }
+  }catch(e){ stimme.volume = 1; tonFrei = false; }
+}
+
 function oeffne(){
+  tonFreischalten();
   gesagt = []; laeuft = true;
   balkenEl.forEach(function(b){ b.style.setProperty("--p", 0); });
   zeileEl.classList.remove("da"); kapName.classList.remove("da");
@@ -1153,6 +1179,7 @@ $("bTon").addEventListener("click", function(){
     : (sprache === "de" ? "Ton aus" : "Sound off"));
   if(stumm){ try{ stimme.pause(); stimme.currentTime = 0; }catch(e){} }
   else if(laeuft){
+    tonFreischalten();
     /* Wieder an: den Satz des laufenden Kapitels von vorn, sonst
        herrscht bis zum naechsten Kapitel Stille. */
     var t = kino.currentTime, i = -1;
