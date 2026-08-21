@@ -215,15 +215,6 @@ video{width:100%;height:100%;object-fit:contain;display:block;
 .knopfrund[aria-pressed="true"] .kreuz{opacity:1}
 .knopfrund[aria-pressed="true"] .welle{opacity:0}
 
-/* Lisas Zeile, unten mittig. */
-.zeile{position:absolute;left:6%;right:6%;bottom:clamp(74px,13%,116px);z-index:9;
-  text-align:center;pointer-events:none}
-.zeile p{font-family:var(--serif);font-size:clamp(16px,2.2vw,28px);line-height:1.34;
-  letter-spacing:-.02em;max-width:26ch;margin:0 auto;
-  text-shadow:0 2px 40px rgba(0,0,0,.95),0 1px 6px rgba(0,0,0,.85);
-  opacity:0;transform:translateY(14px);
-  transition:opacity .8s var(--weich),transform .9s var(--tief)}
-.zeile p.da{opacity:1;transform:none}
 
 /* Der Fuss: Haltname links, Weiter rechts, Fortschritt darunter. */
 .fuss{position:absolute;left:0;right:0;bottom:0;z-index:14;
@@ -245,7 +236,18 @@ video{width:100%;height:100%;object-fit:contain;display:block;
 .buehne.haelt .weiter{opacity:1;visibility:visible;transform:none;transition-delay:.9s}
 .weiter:hover{border-color:var(--tinte);background:rgba(244,245,247,.07);gap:18px}
 .weiter u{width:27px;height:27px;border-radius:50%;background:var(--tinte);
-  display:grid;place-items:center;text-decoration:none}
+  display:grid;place-items:center;text-decoration:none;position:relative}
+/* Der Ring laeuft ab und zeigt, dass die Tour von selbst weitergeht.
+   Ohne ihn wirkt das Weiterspringen wie ein Fehler. */
+.weiter .uhr{position:absolute;inset:-5px;width:calc(100% + 10px);height:calc(100% + 10px);
+  transform:rotate(-90deg);overflow:visible;pointer-events:none}
+.weiter .uhr circle{fill:none;stroke:var(--akzent);stroke-width:1.6;stroke-linecap:round;
+  stroke-dasharray:100;stroke-dashoffset:100;opacity:0}
+.weiter.laeuft .uhr circle{opacity:.95;stroke-dashoffset:0;
+  transition:stroke-dashoffset var(--dauer,5s) linear, opacity .3s}
+.weiter.wartet .uhr circle{opacity:.4;stroke-dashoffset:100;
+  animation:uhrPuls 1.6s var(--weich) infinite}
+@keyframes uhrPuls{0%,100%{opacity:.25}50%{opacity:.7}}
 .weiter u svg{width:9px;height:9px;fill:var(--grund);margin-left:2px}
 .weiter .offen{color:var(--akzent);text-transform:none;letter-spacing:.04em;font-size:10px}
 
@@ -335,7 +337,6 @@ video{width:100%;height:100%;object-fit:contain;display:block;
   /* Solange die Karte offen ist, treten Fusszeile und Lisas Zeile zurueck.
      Sonst liegen drei Dinge uebereinander und nichts ist mehr lesbar. */
   .buehne.karteoffen .fuss,
-  .buehne.karteoffen .zeile,
   .buehne.karteoffen .leiste{opacity:0;pointer-events:none;
     transition:opacity .35s var(--weich)}
 
@@ -346,8 +347,6 @@ video{width:100%;height:100%;object-fit:contain;display:block;
   .karte.da{transform:translateY(0)}
   .punkt em{display:none}
   .punkt{width:56px;height:56px}
-  .zeile{bottom:clamp(88px,16%,130px)}
-  .zeile p{font-size:15.5px;max-width:22ch}
   .zaehler .text span{display:none}
   .fuss{align-items:center}
   .haltname{font-size:9px;letter-spacing:.18em}
@@ -410,13 +409,13 @@ video{width:100%;height:100%;object-fit:contain;display:block;
     </div>
   </header>
 
-  <div class="zeile"><p id="zeile"></p></div>
 
   <div class="fuss">
     <div class="haltname" id="haltname"></div>
     <button class="weiter" id="weiter">
       <span id="weiterText"></span>
-      <u><svg viewBox="0 0 12 12" aria-hidden="true"><polygon points="2,1 11,6 2,11"/></svg></u>
+      <u><svg class="uhr" viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="15.9"/></svg>
+        <svg viewBox="0 0 12 12" aria-hidden="true"><polygon points="2,1 11,6 2,11"/></svg></u>
     </button>
   </div>
   <div class="leiste" id="leiste"></div>
@@ -452,8 +451,8 @@ video{width:100%;height:100%;object-fit:contain;display:block;
     <span data-de>Lädt</span><span data-en>Loading</span></div>
 </div>
 
-<script src="zimmer.js"></script>
-<script src="punkte.js"></script>
+<script src="zimmer.js?v=20260821171321"></script>
+<script src="punkte.js?v=20260821171321"></script>
 <script>
 (function(){
 "use strict";
@@ -463,7 +462,7 @@ var KAPITEL = Z.kapitel || [], LAENGE = Z.laenge || 58.76, HALTE = P.halte || []
 var $ = function(i){ return document.getElementById(i); };
 
 var buehne=$("buehne"), kino=$("kino"), feld=$("feld"), karte=$("karte"),
-    zeileEl=$("zeile"), rand=$("rand"), laedt=$("laedt");
+    rand=$("rand"), laedt=$("laedt");
 var sprache="de", stumm=false, laeuft=false, gesagt=[], haltIndex=-1;
 var stimme=new Audio(); stimme.preload="auto";
 var tonFrei=false, freigabeLaeuft=false;
@@ -506,13 +505,10 @@ function sprich(i){
   stimme.src="ton/"+sprache+"/"+(i+1)+".m4a";
   stimme.play().catch(function(){});
 }
-function zeigeZeile(i){
-  zeileEl.classList.remove("da");
-  setTimeout(function(){
-    zeileEl.textContent = KAPITEL[i] ? KAPITEL[i].lisa[sprache] : "";
-    zeileEl.classList.add("da");
-  }, 240);
-}
+/* Kein Untertitel mehr. Lisa spricht, das Bild zeigt - beides gleichzeitig
+   zu lesen und zu hoeren teilt die Aufmerksamkeit. Die Karten bleiben,
+   die sind zum Lesen gedacht. */
+function zeigeZeile(){}
 
 /* ------------------------------------------------- Randfuellung -------- */
 var ctx=null, malTimer=null;
@@ -566,6 +562,7 @@ function baueHalt(hi){
   $("haltname").classList.add("da");
   buehne.classList.add("haelt");
   neuerWeiterText();
+  haltAutomatik();
 
   /* Der Tipphinweis nur beim allerersten Halt. Danach weiss man es. */
   if(hi === 0){
@@ -593,7 +590,7 @@ function neuerWeiterText(){
    zurueck, solange gelesen wird. */
 function fussZeigen(zeigen){
   var schmal = innerWidth <= 820;
-  [".fuss", ".zeile", ".leiste"].forEach(function(w){
+  [".fuss", ".leiste"].forEach(function(w){
     var e = document.querySelector(w);
     if(!e) return;
     if(!schmal){ e.style.opacity = ""; e.style.pointerEvents = ""; return; }
@@ -616,6 +613,7 @@ function oeffneKarte(eintrag, knopf){
     ? (sprache==="de" ? "Platzhalter — diese Angabe kommt vom Haus"
                       : "Placeholder — this answer comes from the hotel")
     : (sprache==="de" ? "Im Bild belegt" : "Evidenced in the footage");
+  uhrAus();                       /* wer liest, wird nicht weitergeschoben */
   karte.classList.add("da");
   buehne.classList.add("karteoffen");
   karte.setAttribute("aria-hidden","false");
@@ -628,9 +626,12 @@ function oeffneKarte(eintrag, knopf){
   }
 }
 function schliesseKarte(){
+  var warOffen = karte.classList.contains("da");
   karte.classList.remove("da");
   buehne.classList.remove("karteoffen");
   fussZeigen(true);
+  if(warOffen && buehne.classList.contains("haelt")
+     && !buehne.classList.contains("handpause")) uhrStarten(NACHLESEN);
   karte.setAttribute("aria-hidden","true");
 }
 $("karteZu").addEventListener("click", schliesseKarte);
@@ -643,6 +644,7 @@ function zaehle(){
 }
 
 function weiter(){
+  uhrAus();
   schliesseKarte();
   buehne.classList.remove("haelt");
   $("haltname").classList.remove("da");
@@ -652,6 +654,53 @@ function weiter(){
   kino.play().catch(function(){});
 }
 $("weiter").addEventListener("click", weiter);
+
+/* ------------------------------------------------ Die Tour laeuft weiter --
+   Ein Halt haelt nur so lange, wie er gebraucht wird:
+     1. bis Lisa ihren Satz zu Ende gesprochen hat
+     2. danach vier Sekunden, um die Punkte anzusehen
+   Wer einen Punkt anklickt, haelt die Uhr an - er liest ja. Beim Schliessen
+   der Karte laeuft sie kuerzer weiter. Der Weiter-Knopf bleibt, aber als
+   Abkuerzung, nicht als Pflicht. */
+var NACHLESEN = 900;   /* nur nach dem Schliessen einer Karte, kurz */
+var haltUhr = null;
+var weiterKnopf = $("weiter");
+
+function uhrAus(){
+  clearTimeout(haltUhr); haltUhr = null;
+  weiterKnopf.classList.remove("laeuft", "wartet");
+  weiterKnopf.style.removeProperty("--dauer");
+}
+function uhrStarten(ms){
+  uhrAus();
+  weiterKnopf.style.setProperty("--dauer", (ms/1000) + "s");
+  /* Zwei Bilder warten, sonst springt der Ring ohne Übergang auf null. */
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){ weiterKnopf.classList.add("laeuft"); });
+  });
+  haltUhr = setTimeout(function(){
+    if(buehne.classList.contains("haelt")
+       && !karte.classList.contains("da")
+       && !buehne.classList.contains("handpause")) weiter();
+  }, ms);
+}
+function haltAutomatik(){
+  uhrAus();
+  function jetztWeiter(){
+    if(!buehne.classList.contains("haelt")) return;
+    if(karte.classList.contains("da")) return;          /* jemand liest gerade */
+    if(buehne.classList.contains("handpause")) return;  /* von Hand angehalten */
+    weiter();
+  }
+  var redetNoch = !stumm && stimme && !stimme.paused &&
+                  stimme.duration && stimme.currentTime < stimme.duration - 0.15;
+  if(redetNoch){
+    weiterKnopf.classList.add("wartet");
+    stimme.addEventListener("ended", jetztWeiter, { once:true });
+  } else {
+    jetztWeiter();     /* Lisa ist schon fertig - sofort weiter */
+  }
+}
 
 /* ------------------------------------------------- Anhalten und weiter --
    Klick ins Bild und Leertaste tun dasselbe. Drei Zustaende:
@@ -673,6 +722,7 @@ function umschalten(){
     try{ stimme.pause(); }catch(e){}
     buehne.classList.add("handpause");
     $("pause").classList.add("da");
+    uhrAus();
   }
 }
 
@@ -740,7 +790,6 @@ function zeigeEnde(){
   laeuft=false;
   clearInterval(malTimer); malTimer=null;
   try{ stimme.pause(); }catch(e){}
-  zeileEl.classList.remove("da");
   var n = ALLE.filter(function(a){ return a.gesehen; }).length;
   $("eGefunden").textContent = n;
   var alles = n === ALLE.length;
