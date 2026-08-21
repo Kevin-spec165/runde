@@ -219,6 +219,13 @@ html[lang] .titel h1 .kurz{display:none}
   color:var(--tinte);text-shadow:0 1px 16px rgba(0,0,0,.95),0 0 34px rgba(0,0,0,.8);
 }
 
+.ohnejs{
+  position:absolute;z-index:7;left:50%;top:calc(50% + 92px);transform:translateX(-50%);
+  max-width:34ch;text-align:center;font-size:12.5px;line-height:1.6;color:var(--tinte);
+  background:rgba(8,9,11,.86);border:1px solid var(--haar-hell);border-radius:12px;padding:13px 17px;
+}
+html:not(.js) .knopf{display:none}
+
 .hinab{
   position:absolute;z-index:5;left:50%;transform:translateX(-50%);bottom:clamp(14px,2.6vh,26px);
   display:flex;flex-direction:column;align-items:center;gap:9px;
@@ -555,8 +562,8 @@ html:not(.js) .saeule img:first-child{opacity:1;transform:none}
   <div class="titel">
     <div class="vor steig"><span data-de>Zimmer 1 · Geführter Rundgang</span><span data-en>Room 1 · Guided tour</span></div>
     <h1 class="steig">
-      <span class="lang" data-de>Fünfundfünfzig Sekunden, und Sie <em>wissen</em>, worauf Sie sich einlassen.</span>
-      <span class="lang" data-en>Fifty-five seconds, and you <em>know</em> what you are booking.</span>
+      <span class="lang" data-de>Achtundfünfzig Sekunden, und Sie <em>wissen</em>, worauf Sie sich einlassen.</span>
+      <span class="lang" data-en>Fifty-eight seconds, and you <em>know</em> what you're booking.</span>
       <span class="kurz" data-de>Achtundfünfzig Sekunden.<br>Dann <em>wissen</em> Sie es.</span>
       <span class="kurz" data-en>Fifty-eight seconds.<br>Then you <em>know</em>.</span>
     </h1>
@@ -567,6 +574,13 @@ html:not(.js) .saeule img:first-child{opacity:1;transform:none}
         the seven questions that usually only come up at the front desk.</span>
     </p>
   </div>
+
+  <noscript>
+    <div class="ohnejs">
+      Für den Rundgang mit Ton wird JavaScript gebraucht. Der Text darunter
+      steht auch ohne. · The guided tour needs JavaScript. The text below does not.
+    </div>
+  </noscript>
 
   <div class="hinab" aria-hidden="true">
     <i></i>
@@ -889,6 +903,11 @@ function sprich(i){
   if(stumm) return;
   try{ stimme.pause(); }catch(e){}
   stimme.src = tonPfad(i);
+  stimme.onerror = function(){
+    zeigeWarnung(sprache === "de"
+      ? "Diese Textstelle lässt sich nicht laden. Der Rundgang läuft weiter."
+      : "This passage could not be loaded. The tour continues.");
+  };
   stimme.play().catch(function(){
     zeigeWarnung(sprache === "de"
       ? "Der Browser hat den Ton blockiert. Tippen Sie einmal auf das Bild."
