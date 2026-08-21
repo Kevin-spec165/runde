@@ -658,6 +658,24 @@ kino.addEventListener("timeupdate", function(){
   }
 });
 
+/* Wer im Video vorspult, ueberspringt Halte. Der Halt-Zaehler muss dem
+   folgen, sonst liegen die Punkte eines frueheren Halts auf einem
+   spaeteren Bild — genau das ist beim Vorfuehren passiert. */
+kino.addEventListener("seeked", function(){
+  var t = kino.currentTime;
+  for(var i=0;i<KAPITEL.length;i++) gesagt[i] = KAPITEL[i].bei <= t ? gesagt[i] : false;
+  var neu = -1;
+  for(var h=0;h<HALTE.length;h++) if(t >= HALTE[h].bei) neu = h;
+  if(neu !== haltIndex){
+    haltIndex = neu;
+    for(var j=0;j<HALTE.length;j++) leisteEl[j].classList.toggle("fertig", j < neu);
+    if(buehne.classList.contains("haelt")){
+      if(neu >= 0) baueHalt(neu);
+      else { buehne.classList.remove("haelt"); feld.innerHTML = ""; }
+    }
+  }
+});
+
 kino.addEventListener("ended", function(){ if(!buehne.classList.contains("haelt")) zeigeEnde(); });
 kino.addEventListener("waiting", function(){ laedt.classList.add("da"); });
 kino.addEventListener("playing", function(){ laedt.classList.remove("da"); });
