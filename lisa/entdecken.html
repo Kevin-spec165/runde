@@ -50,6 +50,36 @@ html[lang="de"] [data-de],html[lang="en"] [data-en]{display:revert}
 .rand.da{opacity:1}
 
 .bild{position:absolute;inset:0;z-index:1;display:grid;place-items:center}
+
+/* Das Licht im Zimmer.
+   Vor dem Start ist es aus: das Bild steht dunkel und kalt, wie ein Raum
+   ohne eingeschaltete Lampe. Auf Knopfdruck faehrt es hoch — nicht linear,
+   sondern mit der weichen Kurve eines Dimmers. Erst wenn es oben ist,
+   faengt Lisa an zu sprechen.
+   Kein Flackern: ein Hotelzimmer, dessen Licht flackert, verkauft nichts. */
+.buehne.dunkel video,
+.buehne.dunkel .rand{
+  filter:brightness(.14) saturate(.35) contrast(1.1);
+}
+.buehne.lichtan video{
+  animation:lichtHoch 1500ms cubic-bezier(.32,.06,.2,1) forwards;
+}
+.buehne.lichtan .rand{
+  animation:lichtHochRand 1700ms cubic-bezier(.32,.06,.2,1) forwards;
+}
+@keyframes lichtHoch{
+  0%   {filter:brightness(.14) saturate(.35) contrast(1.1)}
+  38%  {filter:brightness(.52) saturate(.72) contrast(1.06)}
+  74%  {filter:brightness(1.04) saturate(1.02) contrast(1)}
+  100% {filter:brightness(1) saturate(1) contrast(1)}
+}
+@keyframes lichtHochRand{
+  0%   {filter:blur(44px) saturate(.4) brightness(.1)}
+  100% {filter:blur(44px) saturate(1.15) brightness(.5)}
+}
+/* Solange es dunkel ist, traegt der Knopf allein - kein zusaetzlicher
+   Schleier darueber, sonst wird aus dunkel nur matschig. */
+.buehne.dunkel .start{background:none;backdrop-filter:none}
 video{width:100%;height:100%;object-fit:contain;display:block;
   transition:filter 1.4s var(--weich),transform 1.4s var(--weich)}
 
@@ -360,7 +390,7 @@ video{width:100%;height:100%;object-fit:contain;display:block;
 }
 </style>
 
-<div class="buehne" id="buehne">
+<div class="buehne dunkel" id="buehne">
   <canvas class="rand" id="rand" aria-hidden="true"></canvas>
   <div class="bild"><video id="kino" playsinline muted preload="auto" poster="bild/poster.jpg"></video></div>
   <div class="korn" aria-hidden="true"></div>
@@ -451,8 +481,8 @@ video{width:100%;height:100%;object-fit:contain;display:block;
     <span data-de>Lädt</span><span data-en>Loading</span></div>
 </div>
 
-<script src="zimmer.js?v=20260821172704"></script>
-<script src="punkte.js?v=20260821172704"></script>
+<script src="zimmer.js?v=20260821174252"></script>
+<script src="punkte.js?v=20260821174252"></script>
 <script>
 (function(){
 "use strict";
@@ -811,6 +841,8 @@ $("eNochmal").addEventListener("click", function(){
   gesagt=[]; haltIndex=-1; zaehle();
   leisteEl.forEach(function(l){ l.classList.remove("fertig"); l.style.setProperty("--p",0); });
   $("ende").classList.remove("da");
+  buehne.classList.remove("lichtan");
+  buehne.classList.add("dunkel");
   try{ kino.currentTime=0; }catch(e){}
   starte();
 });
@@ -825,14 +857,26 @@ $("eVerpasst").addEventListener("click", function(){
 });
 
 /* ------------------------------------------------------ Starten -------- */
+var LICHTDAUER = 1500;
+
 function starte(){
   tonFreischalten();
   laeuft=true;
   $("start").classList.add("weg");
   clearInterval(malTimer); maleRand(); malTimer=setInterval(maleRand,200);
   laedt.classList.toggle("da", kino.readyState<3);
-  function ab(){ laedt.classList.remove("da"); kino.play().catch(function(){}); }
-  if(kino.readyState>=3) ab(); else kino.addEventListener("canplay", ab, {once:true});
+
+  /* Erst das Licht, dann das Bild. Lisas erster Satz sitzt bei Sekunde eins
+     im Video - er kommt also direkt nachdem das Licht oben ist. */
+  function lichtAn(){
+    laedt.classList.remove("da");
+    buehne.classList.remove("dunkel");
+    buehne.classList.add("lichtan");
+    setTimeout(function(){
+      kino.play().catch(function(){});
+    }, LICHTDAUER - 250);        /* die letzten Millisekunden ueberlappen */
+  }
+  if(kino.readyState>=3) lichtAn(); else kino.addEventListener("canplay", lichtAn, {once:true});
 }
 $("startknopf").addEventListener("click", starte);
 
